@@ -1,0 +1,5 @@
+# Path to the dataset
+dataset-path: "/home/chakshu/Documents/projects/iot_security/iot-eval-framework/datasets/MonIOTr/us/mix"
+
+# Path to the mapping file containing device mac addresses
+device-file: "/home/chakshu/Documents/projects/iot_security/iot-eval-framework/datasets/MonIOTr/us/devices.txt"
