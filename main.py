@@ -19,7 +19,7 @@ def load_device_file(device_file):
            continue
        device = line.split(",")[0]
        mac = line.split(",")[1]
-       device_mac_map[device.strip()] = mac.strip()
+       device_mac_map[mac.strip()] = device.strip()
 
    return device_mac_map
 
@@ -67,4 +67,5 @@ if __name__ == "__main__":
     pcap_list = get_pcap_list(config["dataset-path"])
     print(pcap_list)
 
+    # Preprocess the traffic and get the fingerprints from the packets
     preprocess_traffic(device_mac_map, pcap_list)

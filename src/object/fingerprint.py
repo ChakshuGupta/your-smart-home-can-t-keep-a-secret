@@ -2,6 +2,9 @@
 class Fingerprint:
 
     def __init__(self):
+        """
+        Initialise the 5 features extracted from each packet.
+        """
         self.dport = None
         self.protocol = None
         self.direction = None
@@ -10,6 +13,9 @@ class Fingerprint:
     
 
     def is_none(self):
+        """
+        Check if any values are none.
+        """
         none = False
         if self.dport is None:
             none = True
