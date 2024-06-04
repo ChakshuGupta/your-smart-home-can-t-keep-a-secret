@@ -38,7 +38,6 @@ def get_direction(packet):
     Get the direction of the traffic: inbound (0) or outbound (1)
     """
     if "IPV6" in str(packet.layers):
-        print(packet.layers)
         src = ipaddress.ip_address(packet.ipv6.src)
         dst = ipaddress.ip_address(packet.ipv6.dst)
 
@@ -50,7 +49,6 @@ def get_direction(packet):
             return 0
 
     elif "IP" in str(packet.layers):
-        print(packet.layers)
         src = ipaddress.ip_address(packet.ip.src)
         dst = ipaddress.ip_address(packet.ip.dst)
 

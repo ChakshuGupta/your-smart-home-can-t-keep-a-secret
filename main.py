@@ -2,7 +2,8 @@ import os
 import sys
 import yaml
 
-from src.preprocessor import preprocess_traffic
+from src.object.base_model import BaseModel
+from src.traffic_process import preprocess_traffic
 from src.util import verify_config
 
 
@@ -62,10 +63,12 @@ if __name__ == "__main__":
         exit(1)
 
     device_mac_map = load_device_file(config["device-file"])
-    print(device_mac_map)
 
     pcap_list = get_pcap_list(config["dataset-path"])
-    print(pcap_list)
+
+    pickle_path = os.path.join(os.getcwd(), config["dataset-name"])
 
     # Preprocess the traffic and get the fingerprints from the packets
-    preprocess_traffic(device_mac_map, pcap_list)
+    features, labels = preprocess_traffic(device_mac_map, pcap_list, pickle_path)
+
+    model = BaseModel(features, labels)
