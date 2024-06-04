@@ -1,4 +1,5 @@
 import os
+import pickle
 import sys
 import yaml
 
@@ -66,9 +67,12 @@ if __name__ == "__main__":
 
     pcap_list = get_pcap_list(config["dataset-path"])
 
-    pickle_path = os.path.join(os.getcwd(), config["dataset-name"])
+    pickle_path = os.path.join(os.getcwd(), os.path.dirname(config["dataset-path"]))
 
     # Preprocess the traffic and get the fingerprints from the packets
     features, labels = preprocess_traffic(device_mac_map, pcap_list, pickle_path)
 
-    model = BaseModel(features, labels)
+    basemodel = BaseModel(features)
+    model = basemodel.build_model(features, labels)
+    model_file = pickle_path + "-random-forest_model.sav"
+    pickle.dump(model, open(model_file, 'wb'))
