@@ -92,7 +92,7 @@ if __name__ == "__main__":
 
     pcap_list = get_pcap_list(config["dataset-path"])
 
-    pickle_path = os.path.join(os.getcwd(), os.path.dirname(config["dataset-path"]))
+    pickle_path = os.path.join(os.getcwd(), os.path.basename(config["dataset-path"]))
 
     # Preprocess the traffic and get the fingerprints from the packets
     features, labels = preprocess_traffic(device_mac_map, pcap_list, pickle_path)
