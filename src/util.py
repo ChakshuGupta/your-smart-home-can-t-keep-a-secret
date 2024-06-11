@@ -45,6 +45,6 @@ def make_dataset_iterable(data_x, data_y):
 
     dataloader = DataLoader(dataset=tensor_dataset, 
                                 batch_size=batch_size, 
-                                shuffle=True)
+                                shuffle=False)
 
     return dataloader

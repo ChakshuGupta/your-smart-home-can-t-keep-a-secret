@@ -4,7 +4,7 @@ import torch
 import yaml
 
 from src.traffic_process import preprocess_traffic
-from src.util import convert_to_tensor
+from src.train_model import train_lstm_model
 
 def verify_config(config):
     """
@@ -108,7 +108,4 @@ if __name__ == "__main__":
 
     # print(labels.columns)
 
-    train_x, train_y, label_mapping = convert_to_tensor(train_features, train_labels)
-    
-    print(train_x.shape, train_y.shape)
-    print(label_mapping)
+    train_lstm_model(train_features, train_labels)
