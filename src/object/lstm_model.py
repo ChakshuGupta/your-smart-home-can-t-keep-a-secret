@@ -17,9 +17,6 @@ class LstmModel(nn.Module):
                             dropout=self.config.dropout_rate)
         # Fully connected layer
         self.fc = nn.Linear(self.config.hidden_dim, self.output_dim)
-
-        # Dropout layer
-        self.dropout = nn.Dropout(self.config.dropout_rate)
         
         # Softmax layer
         self.softmax = nn.Softmax(dim=1)
@@ -35,8 +32,6 @@ class LstmModel(nn.Module):
         h0 = torch.zeros(self.config.num_layer, self.config.hidden_dim, dtype=torch.float32)
         c0 = torch.zeros(self.config.num_layer,  self.config.hidden_dim, dtype=torch.float32)
         lstm_out, _ = self.lstm(input,(h0, c0))
-        # Dropout
-        lstm_out = self.dropout(lstm_out)
          # Fully-connected
         lstm_out = lstm_out.contiguous().view(-1, self.config.hidden_dim)  # Flatten the LSTM output
         lstm_out = self.fc(lstm_out)

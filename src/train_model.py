@@ -11,7 +11,6 @@ class Config:
     dropout_rate = 0.5
     learning_rate = 0.0001
     num_epochs = 15
-    window_size = 100
     input_dim = 34 # Fingerprint size (5) - subtract dport (1) + embedding dim (30)
 
 
@@ -32,6 +31,7 @@ def train_lstm_model(train_features, train_labels):
     criterion = torch.nn.CrossEntropyLoss(ignore_index=-1)  # Ignore padding index in the loss calculation
     optimizer = Adam(lstm_model.parameters(), lr=config.learning_rate)
 
+    total_loss = 0
     # Training loop
     for epoch in range(config.num_epochs):
         lstm_model.train()
@@ -41,12 +41,15 @@ def train_lstm_model(train_features, train_labels):
             optimizer.zero_grad()
             outputs = lstm_model(x_batch)
             loss = criterion(outputs, y_batch)
+            total_loss += loss
             loss.backward()
             optimizer.step()
             epoch_loss += loss.item()
         
         epoch_loss /= len(train_dataloader)
         print(f'Epoch {epoch+1}/{config.num_epochs}, Loss: {epoch_loss}')
+    
+    print("Train total loss: %5f" % (total_loss/config.num_epochs))
 
     # Save the model checkpoint
     torch.save(lstm_model.state_dict(), 'basic_lstm_model_checkpoint.pth')
