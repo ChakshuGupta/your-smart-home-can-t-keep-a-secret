@@ -1,11 +1,10 @@
 import os
-import pickle
 import sys
+import torch
 import yaml
 
-from src.object.base_model import BaseModel
 from src.traffic_process import preprocess_traffic
-
+from src.util import convert_to_tensor
 
 def verify_config(config):
     """
@@ -65,7 +64,6 @@ def get_pcap_list(dataset_dir):
     return pcap_files
 
 
-
 if __name__ == "__main__":
     if len(sys.argv) < 1:
         print("ERROR! THe script requires the path to the config file as argument")
@@ -95,9 +93,22 @@ if __name__ == "__main__":
     pickle_path = os.path.join(os.getcwd(), os.path.basename(config["dataset-path"]))
 
     # Preprocess the traffic and get the fingerprints from the packets
-    features, labels = preprocess_traffic(device_mac_map, pcap_list, pickle_path)
+    train_features, train_labels = preprocess_traffic(device_mac_map, pcap_list, pickle_path)
 
-    basemodel = BaseModel(features)
-    model = basemodel.build_model(features, labels)
-    model_file = pickle_path + "-random-forest_model.sav"
-    pickle.dump(model, open(model_file, 'wb'))
+    # # Generate the base model for comparison
+    # basemodel = BaseModel(features)
+    # model_file = pickle_path + "-random-forest_model.sav"
+    # if not os.path.exists(model_file):
+    #     basemodel.build_model(labels)
+    #     basemodel.save_model(model_file)
+    
+    train_features["dport"] = train_features["dport"].astype(int)
+    train_features["frame_len"] = train_features["frame_len"].astype(int)
+    train_features["protocol"] = train_features["protocol"].astype(int)
+
+    # print(labels.columns)
+
+    train_x, train_y, label_mapping = convert_to_tensor(train_features, train_labels)
+    
+    print(train_x.shape, train_y.shape)
+    print(label_mapping)

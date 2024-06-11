@@ -33,6 +33,7 @@ def get_protocol_string(protocols):
 
     return proto_str
 
+
 def get_direction(packet):
     """
     Get the direction of the traffic: inbound (0) or outbound (1)
@@ -59,6 +60,7 @@ def get_direction(packet):
         else:
             return 0
 
+
 def get_dport(packet):
     """
     Get the destination port from the transport layer
@@ -67,7 +69,8 @@ def get_dport(packet):
     if transport_layer is None:
         return None
     
-    return packet[packet.transport_layer].dstport
+    return int(packet[packet.transport_layer].dstport)
+
 
 def extract_features(packet, last_time):
     """
@@ -76,7 +79,7 @@ def extract_features(packet, last_time):
     """
     fingerprint = Fingerprint()
 
-    fingerprint.frame_len = packet.frame_info.len
+    fingerprint.frame_len = int(packet.frame_info.len)
     fingerprint.time_interval = float(packet.frame_info.time_epoch) - last_time
     fingerprint.protocol = get_protocol_string(packet.frame_info.protocols)
     fingerprint.dport = get_dport(packet)
