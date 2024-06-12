@@ -8,7 +8,7 @@ from src.object.lstm_model import LstmModel, Config
 from src.util import make_dataset_iterable, convert_to_tensor
 
 
-def train_lstm_model(train_features, train_labels, label_mapping, bidirectional=False):
+def train_lstm_model(train_features, train_labels, label_mapping, model_path, bidirectional=False):
     """
     Train the LSTM model
     """
@@ -26,9 +26,9 @@ def train_lstm_model(train_features, train_labels, label_mapping, bidirectional=
     config = Config()
     
     # If the model file exists, load it and return the file
-    if os.path.exists('lstm_model.sav'):
+    if os.path.exists(model_path):
         lstm_model = LstmModel(config, output_dim, bidirectional)
-        lstm_model.load_state_dict(torch.load('lstm_model.sav'))
+        lstm_model.load_state_dict(torch.load(model_path))
         return lstm_model
 
     # Get the LSTM mddel class object
@@ -61,7 +61,7 @@ def train_lstm_model(train_features, train_labels, label_mapping, bidirectional=
     print("Train total loss: %5f" % (total_loss/config.num_epochs))
 
     # Save the model checkpoint
-    torch.save(lstm_model.state_dict(), 'lstm_model.sav')
+    torch.save(lstm_model.state_dict(), model_path)
     # Return the trained model
     return lstm_model
 

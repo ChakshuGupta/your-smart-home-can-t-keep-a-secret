@@ -1,5 +1,5 @@
 import ipaddress
-from src.object.fingerprint import Fingerprint
+from src.object.feature_vector import FeatureVector
   
 
 def get_protocol_string(protocols):
@@ -77,12 +77,12 @@ def extract_features(packet, last_time):
     Extract the features required from the packet and store it
     in the object of the fingerprint class.
     """
-    fingerprint = Fingerprint()
+    feature_vector = FeatureVector()
 
-    fingerprint.frame_len = int(packet.frame_info.len)
-    fingerprint.time_interval = float(packet.frame_info.time_epoch) - last_time
-    fingerprint.protocol = int(get_protocol_string(packet.frame_info.protocols))
-    fingerprint.dport = get_dport(packet)
-    fingerprint.direction = get_direction(packet)
+    feature_vector.frame_len = int(packet.frame_info.len)
+    feature_vector.time_interval = float(packet.frame_info.time_epoch) - last_time
+    feature_vector.protocol = int(get_protocol_string(packet.frame_info.protocols))
+    feature_vector.dport = get_dport(packet)
+    feature_vector.direction = get_direction(packet)
 
-    return fingerprint
+    return feature_vector

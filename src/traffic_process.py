@@ -2,7 +2,7 @@ import os
 import pandas as pd
 import pickle
 import pyshark
-from src.fingerprint_extractor import extract_features
+from src.feature_extractor import extract_features
 
 
 def preprocess_traffic(mac_addrs, pcap_list, pickle_path):
@@ -37,29 +37,27 @@ def preprocess_traffic(mac_addrs, pcap_list, pickle_path):
             else:
                 last_time = float(packets[index-1].frame_info.time_epoch)
             # Extract fingerprint for the packet
-            fingerprint = extract_features(packet, last_time)
-
-            if fingerprint.is_none():
-                continue
+            feature_vector = extract_features(packet, last_time)
 
             # If the src or dst MAC address exists in the mapping
             # add the corresponding device name in the label
             src_mac = packet.eth.src
             dst_mac = packet.eth.dst
 
+            # Add to the list only if the src or dst mac address is there in the
+            # mapping
             if src_mac in mac_addrs:
                 # append the fingerprint in the features list
-                features.append(fingerprint.__dict__)
+                features.append(feature_vector.__dict__)
                 labels.append(mac_addrs[src_mac])
             elif dst_mac in mac_addrs:
                 # append the fingerprint in the features list
-                features.append(fingerprint.__dict__)
+                features.append(feature_vector.__dict__)
                 labels.append(mac_addrs[dst_mac])
 
         # Close the capture file and clear the data
         packets.close()
         packets.clear()
-    print(features)
 
     # convert the lists to dataframe
     df_features = pd.DataFrame.from_dict(features)

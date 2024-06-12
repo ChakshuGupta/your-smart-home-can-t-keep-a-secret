@@ -27,7 +27,6 @@ def encode_labels(device_list):
     """
     # Conver list of devices to numpy array
     device_numpy = np.array(device_list)
-    print(device_numpy)
 
     # Setup the labelencoder
     labelencoder = LabelEncoder()
