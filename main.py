@@ -3,7 +3,7 @@ import sys
 import yaml
 
 from src.traffic_process import preprocess_traffic
-from src.train_model import train_lstm_model, test_lstm_model
+from train_test_model import train_lstm_model, test_lstm_model
 from src.util import encode_labels
 
 
@@ -95,8 +95,9 @@ if __name__ == "__main__":
     
     # Load the file mapping mac addresses to devices
     device_mac_map = load_device_file(config["device-file"])
+    # Get the list of values from the map i.e the list of devices
     device_list = list(device_mac_map.values())
-    device_list.append("local")
+    # Get the label encoder and label mapping by encoding the device list into integers
     labelencoder, label_mapping = encode_labels(device_list)
     
     # Prepare the training data
@@ -106,9 +107,7 @@ if __name__ == "__main__":
 
     # Preprocess the traffic and get the features from the packets
     train_features, train_labels = preprocess_traffic(device_mac_map, train_pcap_list, train_pickle_path)
-    print(train_features.columns)
-    print(train_labels.shape)
-
+    # Encode the training labels using the labelencoder
     train_labels = labelencoder.transform(train_labels.values.ravel())
 
 
@@ -121,6 +120,7 @@ if __name__ == "__main__":
     test_pickle_path = os.path.join(os.getcwd(), os.path.basename(config["dataset-path"]["test"]))
     # Preprocess the test traffic and get the features from the packets
     test_features, test_labels = preprocess_traffic(device_mac_map, test_pcap_list, test_pickle_path)
+    # Encode the test labels using the labelencoder
     test_labels = labelencoder.transform(test_labels.values.ravel())
 
     # Test the Generated model

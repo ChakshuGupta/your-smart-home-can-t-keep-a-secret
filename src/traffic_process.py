@@ -7,6 +7,7 @@ from src.fingerprint_extractor import extract_features
 
 def preprocess_traffic(mac_addrs, pcap_list, pickle_path):
     """
+    Preprocess the traffic and extract the features from the traffic
     """
     # Initialize the empty lists
     features = []
@@ -40,9 +41,6 @@ def preprocess_traffic(mac_addrs, pcap_list, pickle_path):
 
             if fingerprint.is_none():
                 continue
-            
-            # append the fingerprint in the features list
-            features.append(fingerprint.__dict__)
 
             # If the src or dst MAC address exists in the mapping
             # add the corresponding device name in the label
@@ -50,14 +48,14 @@ def preprocess_traffic(mac_addrs, pcap_list, pickle_path):
             dst_mac = packet.eth.dst
 
             if src_mac in mac_addrs:
+                # append the fingerprint in the features list
+                features.append(fingerprint.__dict__)
                 labels.append(mac_addrs[src_mac])
             elif dst_mac in mac_addrs:
+                # append the fingerprint in the features list
+                features.append(fingerprint.__dict__)
                 labels.append(mac_addrs[dst_mac])
-            else:
-                # if the mac addr does not exist in the mapping append "local"
-                # to the labels
-                labels.append("local")
-        
+
         # Close the capture file and clear the data
         packets.close()
         packets.clear()

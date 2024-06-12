@@ -95,7 +95,9 @@ def test_lstm_model(model, test_features, test_labels):
         correct += (y_pred == y_batch).sum()
 
     accuracy = 100 * correct / total
+    print("Accuracy: " ,accuracy)
 
+    # Print the classification report
     print(classification_report(
         y_true = y_test.numpy(),
         y_pred = y_pred_total,
