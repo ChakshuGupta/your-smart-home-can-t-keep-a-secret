@@ -1,48 +1,57 @@
+import os
 import torch
+
+from sklearn.metrics import classification_report
 from torch.optim.adam import Adam
 
-from src.object.lstm_model import LstmModel
+from src.object.lstm_model import LstmModel, Config
 from src.util import make_dataset_iterable, convert_to_tensor
 
-class Config:
-    hidden_dim = 64
-    embedding_dim = 30
-    num_layer = 2
-    dropout_rate = 0.5
-    learning_rate = 0.0001
-    num_epochs = 15
-    input_dim = 34 # Fingerprint size (5) - subtract dport (1) + embedding dim (30)
 
+def train_lstm_model(train_features, train_labels, label_mapping, bidirectional=False):
+    """
+    Train the LSTM model
+    """
+    # Convert the dataframes to tensors
+    x_train, y_train = convert_to_tensor(train_features, train_labels)
 
-def train_lstm_model(train_features, train_labels):
-
-    train_x, train_y, label_mapping = convert_to_tensor(train_features, train_labels)
-    
-    num_embeddings = train_features["dport"].max()+1 # To make sure the max value is included in the embedding
+    # Final output dimension == number of devices    
     output_dim = len(label_mapping)
     
-    print(train_x.shape, train_y.shape, num_embeddings)
-    print(label_mapping)
-
-    train_dataloader = make_dataset_iterable(train_x, train_y)
+    # Load the data into a DataLoader and make it iterable by splitting
+    # the data into batches
+    train_dataloader = make_dataset_iterable(x_train, y_train)
     
+    # Get the config for the LSTM model
     config = Config()
-    lstm_model = LstmModel(config, num_embeddings, output_dim)
+    
+    # If the model file exists, load it and return the file
+    if os.path.exists('lstm_model.sav'):
+        lstm_model = LstmModel(config, output_dim, bidirectional)
+        lstm_model.load_state_dict(torch.load('lstm_model.sav'))
+        return lstm_model
+
+    # Get the LSTM mddel class object
+    lstm_model = LstmModel(config, output_dim, bidirectional)
     criterion = torch.nn.CrossEntropyLoss(ignore_index=-1)  # Ignore padding index in the loss calculation
     optimizer = Adam(lstm_model.parameters(), lr=config.learning_rate)
 
     total_loss = 0
     # Training loop
     for epoch in range(config.num_epochs):
+        # Set the model in training mode
         lstm_model.train()
         epoch_loss = 0
         for x_batch, y_batch in train_dataloader:
-            print(x_batch[:,0].max())
             optimizer.zero_grad()
-            outputs = lstm_model(x_batch)
-            loss = criterion(outputs, y_batch)
+            # Forward propogation
+            y_pred = lstm_model(x_batch)
+            # Compute loss between predicted values and true values
+            loss = criterion(y_pred, y_batch)
             total_loss += loss
+            # Backpropagate loss
             loss.backward()
+
             optimizer.step()
             epoch_loss += loss.item()
         
@@ -52,4 +61,44 @@ def train_lstm_model(train_features, train_labels):
     print("Train total loss: %5f" % (total_loss/config.num_epochs))
 
     # Save the model checkpoint
-    torch.save(lstm_model.state_dict(), 'basic_lstm_model_checkpoint.pth')
+    torch.save(lstm_model.state_dict(), 'lstm_model.sav')
+    # Return the trained model
+    return lstm_model
+
+
+
+def test_lstm_model(model, test_features, test_labels):
+    """
+    Test the LSTM model
+    """
+    model.eval()
+    x_test, y_test = convert_to_tensor(test_features, test_labels)
+    test_dataloader = make_dataset_iterable(x_test, y_test)
+     
+    correct = 0
+    total = 0
+    y_pred_total = []
+    # Iterate through test dataset
+    for x_batch, y_batch in test_dataloader:
+        # Forward pass only to get logits/output
+        outputs = model(x_batch)
+
+        # Get predictions from the maximum value
+        _, y_pred = torch.max(outputs.data, 1)
+        
+        y_pred_total.extend(y_pred)
+
+        # Total number of labels
+        total += y_batch.size(0)
+
+        # Total correct predictions
+        correct += (y_pred == y_batch).sum()
+
+    accuracy = 100 * correct / total
+
+    print(classification_report(
+        y_true = y_test.numpy(),
+        y_pred = y_pred_total,
+        digits = 4,
+        zero_division = 0,
+    ))

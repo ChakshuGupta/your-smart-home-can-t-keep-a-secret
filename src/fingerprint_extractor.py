@@ -20,7 +20,7 @@ def get_protocol_string(protocols):
             tcp = "1"
         elif proto == "udp":
             udp = "1"
-        elif proto == "tls":
+        elif proto == "tls" or proto == "ssl":
             tls = "1"
         elif proto == "http":
             http = "1"
@@ -81,7 +81,7 @@ def extract_features(packet, last_time):
 
     fingerprint.frame_len = int(packet.frame_info.len)
     fingerprint.time_interval = float(packet.frame_info.time_epoch) - last_time
-    fingerprint.protocol = get_protocol_string(packet.frame_info.protocols)
+    fingerprint.protocol = int(get_protocol_string(packet.frame_info.protocols))
     fingerprint.dport = get_dport(packet)
     fingerprint.direction = get_direction(packet)
 

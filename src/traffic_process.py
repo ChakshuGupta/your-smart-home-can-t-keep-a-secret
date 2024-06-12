@@ -61,6 +61,7 @@ def preprocess_traffic(mac_addrs, pcap_list, pickle_path):
         # Close the capture file and clear the data
         packets.close()
         packets.clear()
+    print(features)
 
     # convert the lists to dataframe
     df_features = pd.DataFrame.from_dict(features)
