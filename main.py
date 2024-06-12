@@ -2,8 +2,10 @@ import os
 import sys
 import yaml
 
+from sklearn.model_selection import StratifiedKFold
+
 from src.traffic_process import preprocess_traffic
-from train_test_model import train_lstm_model, test_lstm_model
+from src.train_test_model import train_lstm_model, test_lstm_model
 from src.util import encode_labels
 
 
@@ -97,31 +99,68 @@ if __name__ == "__main__":
     device_mac_map = load_device_file(config["device-file"])
     # Get the list of values from the map i.e the list of devices
     device_list = list(device_mac_map.values())
+    device_list.append("local")
     # Get the label encoder and label mapping by encoding the device list into integers
     labelencoder, label_mapping = encode_labels(device_list)
+
+    if config["dataset-path"]["train"] == config["dataset-path"]["test"]:
+        cross_validation = True
+    else:
+        cross_validation = False
+
+    if cross_validation:
+        # Get the list of pcaps from the dataset dir
+        dataset_pcap_list = get_pcap_list(config["dataset-path"]["train"])
+        # Get the base path for the pickle files
+        dataset_pickle_path = os.path.join(os.getcwd(), os.path.basename(config["dataset-path"]["train"]))
+        # Preprocess the pcap files to get the features and the labels
+        dataset_x, dataset_y = preprocess_traffic(device_mac_map, dataset_pcap_list, dataset_pickle_path)
+        # Declare the stratified k fold object
+        skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=1234)
+        # Loop through the different folds
+        for train_index, test_index in skf.split(dataset_x, dataset_y):
+            # split the dataset into train and test dataset using the indices
+            x_train = dataset_x.iloc[train_index]
+            y_train = dataset_y.iloc[train_index]
+            x_test = dataset_x.iloc[test_index]
+            y_test = dataset_y.iloc[test_index]
+            print(x_train.shape, y_train.shape, x_test.shape, y_test.shape)
+            
+            # Get the encoded labels for the training dataset
+            y_train = labelencoder.transform(y_train.values.ravel())
+            # Train the LSTM model
+            model = train_lstm_model(x_train, y_train, label_mapping)
+            
+            # Get the encoded labels for the testing dataset
+            y_test = labelencoder.transform(y_test.values.ravel())
+            # Test the Generated model
+            test_lstm_model(model, x_test, y_test)
+
+
+    else:
     
-    # Prepare the training data
-    train_pcap_list = get_pcap_list(config["dataset-path"]["train"])
-    # Get the base path of the pickle file using the training dataset path
-    train_pickle_path = os.path.join(os.getcwd(), os.path.basename(config["dataset-path"]["train"]))
+        # Prepare the training data
+        train_pcap_list = get_pcap_list(config["dataset-path"]["train"])
+        # Get the base path of the pickle file using the training dataset path
+        train_pickle_path = os.path.join(os.getcwd(), os.path.basename(config["dataset-path"]["train"]))
 
-    # Preprocess the traffic and get the features from the packets
-    train_features, train_labels = preprocess_traffic(device_mac_map, train_pcap_list, train_pickle_path)
-    # Encode the training labels using the labelencoder
-    train_labels = labelencoder.transform(train_labels.values.ravel())
+        # Preprocess the traffic and get the features from the packets
+        x_train, y_train = preprocess_traffic(device_mac_map, train_pcap_list, train_pickle_path)
+        # Encode the training labels using the labelencoder
+        y_train = labelencoder.transform(y_train.values.ravel())
 
 
-    # Train the LSTM model
-    model = train_lstm_model(train_features, train_labels, label_mapping)
+        # Train the LSTM model
+        model = train_lstm_model(x_train, y_train, label_mapping)
 
-    # Prepare the testing data
-    test_pcap_list = get_pcap_list(config["dataset-path"]["test"])
-    # Get the base path of the pickle file using the testing dataset path
-    test_pickle_path = os.path.join(os.getcwd(), os.path.basename(config["dataset-path"]["test"]))
-    # Preprocess the test traffic and get the features from the packets
-    test_features, test_labels = preprocess_traffic(device_mac_map, test_pcap_list, test_pickle_path)
-    # Encode the test labels using the labelencoder
-    test_labels = labelencoder.transform(test_labels.values.ravel())
+        # Prepare the testing data
+        test_pcap_list = get_pcap_list(config["dataset-path"]["test"])
+        # Get the base path of the pickle file using the testing dataset path
+        test_pickle_path = os.path.join(os.getcwd(), os.path.basename(config["dataset-path"]["test"]))
+        # Preprocess the test traffic and get the features from the packets
+        x_test, y_test = preprocess_traffic(device_mac_map, test_pcap_list, test_pickle_path)
+        # Encode the test labels using the labelencoder
+        y_test = labelencoder.transform(y_test.values.ravel())
 
-    # Test the Generated model
-    test_lstm_model(model, test_features, test_labels)
+        # Test the Generated model
+        test_lstm_model(model, x_test, y_test)
