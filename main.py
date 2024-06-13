@@ -99,7 +99,6 @@ if __name__ == "__main__":
     device_mac_map = load_device_file(config["device-file"])
     # Get the list of values from the map i.e the list of devices
     device_list = list(device_mac_map.values())
-    device_list.append("local")
     # Get the label encoder and label mapping by encoding the device list into integers
     labelencoder, label_mapping = encode_labels(device_list)
 
@@ -115,6 +114,8 @@ if __name__ == "__main__":
         dataset_base_path = os.path.join(os.getcwd(), os.path.basename(config["dataset-path"]["train"]))
         # Preprocess the pcap files to get the features and the labels
         dataset_x, dataset_y = preprocess_traffic(device_mac_map, dataset_pcap_list, dataset_base_path)
+
+        dataset_x["dport"] = dataset_x["dport"].astype(int)
         # Declare the stratified k fold object
         skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=1234)
         idx = 0
@@ -125,13 +126,12 @@ if __name__ == "__main__":
             y_train = dataset_y.iloc[train_index]
             x_test = dataset_x.iloc[test_index]
             y_test = dataset_y.iloc[test_index]
-            print(x_train.shape, y_train.shape, x_test.shape, y_test.shape)
             
             # Get the encoded labels for the training dataset
             y_train = labelencoder.transform(y_train.values.ravel())
             model_path = dataset_base_path + "-model-" + str(idx) + ".sav"
             # Train the LSTM model
-            model = train_lstm_model(x_train, y_train, label_mapping)
+            model = train_lstm_model(x_train, y_train, label_mapping, model_path)
             
             # Get the encoded labels for the testing dataset
             y_test = labelencoder.transform(y_test.values.ravel())
