@@ -41,9 +41,9 @@ class LstmModel(nn.Module):
     def forward(self, features):
         
         embedded_dport = self.embedding(features[:,0].to(torch.long))
-        # # Replace the original dport column in the features with the pca encoded one
+        # # Replace the original dport column in the features with the embedded ones
         input = torch.cat([embedded_dport,features[:,1:]],dim=1)
-        input = input.float()
+        input = input.float() #  To fix the error that LSTM was expecting float32 but got float64
 
         h0 = torch.zeros(self.config.num_layer, self.config.hidden_dim, dtype=torch.float32)
         c0 = torch.zeros(self.config.num_layer,  self.config.hidden_dim, dtype=torch.float32)
