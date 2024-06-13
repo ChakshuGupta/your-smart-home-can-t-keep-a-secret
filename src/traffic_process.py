@@ -47,8 +47,7 @@ def preprocess_traffic(mac_addrs, pcap_list, pickle_path):
                    "-e", "tcp.dstport",
                    "-e", "udp.dstport"
                    ]
-        
-        result = []
+
         # Call Tshark on packets
         process = Popen(command, stdout=PIPE, stderr=PIPE)
         # Get output. Give warning message if any
@@ -97,6 +96,14 @@ def preprocess_traffic(mac_addrs, pcap_list, pickle_path):
 
     # convert the lists to dataframe
     df_features = pd.DataFrame.from_dict(features)
+    
+    # Split the protocols list into separate columns
+    df_features[["protocol1", "protocol2", "protocol3", "protocol4", "protocol5", "protocol6", "protocol7"]] =\
+        pd.DataFrame(df_features.protocol.to_list(), index=df_features.index)
+    # Delete the original protocol column from the dataframe
+    del df_features["protocol"]
+
+    # Convert labels list to dataframe
     df_labels = pd.DataFrame(labels)
 
     print("Saving the extracted features into pickle files.")

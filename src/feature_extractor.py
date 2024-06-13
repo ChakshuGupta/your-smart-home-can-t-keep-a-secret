@@ -7,7 +7,7 @@ def get_protocol_string(protocols):
     Generate the protocols string using the method described in the paper
     """
     # default values of the protocols
-    ip, tcp, udp, tls, http, dns, other = "0", "0", "0", "0", "0", "0", "0"
+    ip, tcp, udp, tls, http, dns, other = 0,0,0,0,0,0,0
     protocol_list = protocols.split(":")
     for proto in protocol_list:
         if proto == "eth":
@@ -15,21 +15,21 @@ def get_protocol_string(protocols):
         elif proto == "ethertype":
             continue
         elif proto == "ip":
-            ip = "1"
+            ip = 1
         elif proto == "tcp":
-            tcp = "1"
+            tcp = 1
         elif proto == "udp":
-            udp = "1"
+            udp = 1
         elif proto == "tls" or proto == "ssl":
-            tls = "1"
+            tls = 1
         elif proto == "http":
-            http = "1"
+            http = 1
         elif proto == "dns":
-            dns = "1"
+            dns = 1
         else:
-            other = "1"
+            other = 1
 
-    proto_str = ip + tcp + udp + tls + http + dns + other
+    proto_str = [ip, tcp, udp, tls, http, dns, other]
 
     return proto_str
 
@@ -87,7 +87,7 @@ def extract_features(packet, last_time):
 
     feature_vector.frame_len = int(packet[0])
     feature_vector.time_interval = float(packet[1]) - last_time
-    feature_vector.protocol = int(get_protocol_string(packet[2]))
+    feature_vector.protocol = get_protocol_string(packet[2])
     feature_vector.direction = get_direction(packet)
     feature_vector.dport = int(packet[7])
 
