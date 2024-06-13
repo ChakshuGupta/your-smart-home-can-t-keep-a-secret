@@ -1,6 +1,12 @@
 # Your Smart Home Can't Keep a Secret Implementation
 
-Implementation of the paper Your Smart Home Can't Keep a Secret: . 
+Implementation of the paper __"Your Smart Home Can't Keep a Secret: Towards Automated Fingerprinting of IoT Traffic"__.
+
+Citation:
+```
+Shuaike Dong, Zhou Li, Di Tang, Jiongyi Chen, Menghan Sun, and Kehuan Zhang. 2020. Your Smart Home Can't Keep a Secret: Towards Automated Fingerprinting of IoT Traffic. In Proceedings of the 15th ACM Asia Conference on Computer and Communications Security (ASIA CCS '20).
+```
+
 The link to the paper: https://dl.acm.org/doi/10.1145/3320269.3384732.
 
 ## Install the pre-requisites
