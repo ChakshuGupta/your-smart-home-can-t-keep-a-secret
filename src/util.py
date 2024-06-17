@@ -40,7 +40,7 @@ def encode_labels(device_list):
 
 def convert_to_tensor(features, labels):
     # Convert features to tensor format
-    tensor_features = torch.from_numpy(features.to_numpy())
+    tensor_features = torch.from_numpy(features)
 
     # Convert labels to tensor format
     tensor_labels = torch.from_numpy(labels)

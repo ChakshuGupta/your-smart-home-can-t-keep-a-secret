@@ -40,29 +40,24 @@ class LstmModel(nn.Module):
         self.softmax = nn.Softmax(dim=1)
     
 
-    def forward(self, features):
-        
-        embedded_dport = self.embedding(features[:,0].to(torch.long))
+    def forward(self, features):                
+        embedded_dport = self.embedding(features[:,:,1].to(torch.long))
         # # Replace the original dport column in the features with the embedded ones
-        input = torch.cat([embedded_dport,features[:,1:]],dim=1)
+        input = torch.cat([embedded_dport,features[:,:,1:]],dim=2)
         input = input.float() #  To fix the error that LSTM was expecting float32 but got float64
         
 
          # Fully-connected
         if self.bidirectional:
-            h0 = torch.zeros(self.config.num_layer * 2, self.config.hidden_dim, dtype=torch.float32, device=self.device)
-            c0 = torch.zeros(self.config.num_layer * 2,  self.config.hidden_dim, dtype=torch.float32, device=self.device)
+            h0 = torch.zeros(self.config.num_layer * 2, input.size(0), self.config.hidden_dim, dtype=torch.float32, device=self.device)
+            c0 = torch.zeros(self.config.num_layer * 2, input.size(0), self.config.hidden_dim, dtype=torch.float32, device=self.device)
         else:
-            h0 = torch.zeros(self.config.num_layer, self.config.hidden_dim, dtype=torch.float32, device=self.device)
-            c0 = torch.zeros(self.config.num_layer,  self.config.hidden_dim, dtype=torch.float32, device=self.device)
+            h0 = torch.zeros(self.config.num_layer, input.size(0), self.config.hidden_dim, dtype=torch.float32, device=self.device)
+            c0 = torch.zeros(self.config.num_layer, input.size(0), self.config.hidden_dim, dtype=torch.float32, device=self.device)
+        
         lstm_out, (hidden, state) = self.lstm(input, (h0, c0))
 
-         # Fully-connected
-        if self.bidirectional:
-            lstm_out = lstm_out.contiguous().view(-1, self.config.hidden_dim*2)  # Flatten the LSTM output
-        else:
-            lstm_out = lstm_out.contiguous().view(-1, self.config.hidden_dim)  # Flatten the LSTM output
-        lstm_out = self.fc(lstm_out)
+        lstm_out = self.fc(lstm_out[:, -1, :])
 
          # Softmax 
         output = self.softmax(lstm_out)

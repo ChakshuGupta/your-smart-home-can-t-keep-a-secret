@@ -32,13 +32,12 @@ def train_lstm_model(train_features, train_labels, label_mapping, model_path, bi
 
     # Get the LSTM mddel class object
     lstm_model = LstmModel(config, output_dim, bidirectional, device)
+    criterion = torch.nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(lstm_model.parameters(), lr=config.learning_rate)
 
     total_loss = 0
     # Training loop
     for epoch in range(config.num_epochs):
-        optimizer.zero_grad()
-        criterion = torch.nn.CrossEntropyLoss()
         # Set the model in training mode
         lstm_model.train()
         epoch_loss = 0
@@ -80,13 +79,13 @@ def test_lstm_model(model, test_features, test_labels, device="cpu"):
     # Iterate through test dataset
     for x_batch, y_batch in test_dataloader:
         # Forward pass only to get logits/output
-        outputs = model(x_batch)
+        outputs = model(x_batch.to(device))
 
         # Get predictions from the maximum value
         _, y_pred = torch.max(outputs.data, 1)
         
         y_test_all.extend(y_batch)
-        y_pred_total.extend(y_pred)
+        y_pred_total.extend(y_pred.cpu())
 
     # Print the classification report
     print(classification_report(

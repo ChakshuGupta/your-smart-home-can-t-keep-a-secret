@@ -1,3 +1,4 @@
+import numpy as np
 import os
 import sys
 import torch
@@ -69,7 +70,7 @@ def get_pcap_list(dataset_dir):
         for file in files:
             if file.endswith(".pcap") or file.endswith(".pcapng"):
                 pcap_files.append(os.path.join(root, file))
-
+    pcap_files.sort()
     return pcap_files
 
 
@@ -97,8 +98,8 @@ if __name__ == "__main__":
         exit(1)
 
     # Select CUDA option if available
-    # device = "cuda" if torch.cuda.is_available() else "cpu"
-    device = "cpu"
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    # device = "cpu"
     
     print("Using the device: {}".format(device))
     # Load the file mapping mac addresses to devices
@@ -120,32 +121,28 @@ if __name__ == "__main__":
         dataset_base_path = os.path.join(os.getcwd(), os.path.basename(config["dataset-path"]["train"]))
         # Preprocess the pcap files to get the features and the labels
         dataset_x, dataset_y = preprocess_traffic(device_mac_map, dataset_pcap_list, dataset_base_path)
-        # device_list = dataset_y[0].unique()
-        # print(device_list)
-        # labelencoder, label_mapping = encode_labels(device_list)
 
-        dataset_x["dport"] = dataset_x["dport"].astype(int)
         # Declare the stratified k fold object
         skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=1234)
         idx = 0
         # Loop through the different folds
         for train_index, test_index in skf.split(dataset_x, dataset_y):
             # split the dataset into train and test dataset using the indices
-            x_train = dataset_x.iloc[train_index]
-            y_train = dataset_y.iloc[train_index]
-            x_test = dataset_x.iloc[test_index]
-            y_test = dataset_y.iloc[test_index]
+            x_train = np.array(dataset_x)[train_index]
+            y_train = np.array(dataset_y)[train_index]
+            x_test = np.array(dataset_x)[test_index]
+            y_test = np.array(dataset_y)[test_index]
             
             # Get the encoded labels for the training dataset
-            y_train = labelencoder.transform(y_train.values.ravel())
+            y_train = labelencoder.transform(y_train.ravel())
             model_path = dataset_base_path + "-model-" + str(idx) + ".sav"
             # Train the LSTM model
             model = train_lstm_model(x_train, y_train, label_mapping, model_path, bidirectional=False, device=device)
             
             # Get the encoded labels for the testing dataset
-            y_test = labelencoder.transform(y_test.values.ravel())
+            y_test = labelencoder.transform(y_test.ravel())
             # Test the Generated model
-            test_lstm_model(model, x_test, y_test)
+            test_lstm_model(model, x_test, y_test, device=device)
             # increment index
             idx += 1
 

@@ -55,17 +55,6 @@ def get_direction(packet):
     else:
         return 0
 
-    # elif "IP" in str(packet.layers):
-    #     src = ipaddress.ip_address(packet.ip.src)
-    #     dst = ipaddress.ip_address(packet.ip.dst)
-
-    #     if src.is_global:
-    #         return 0
-    #     elif dst.is_global:
-    #         return 1
-    #     else:
-    #         return 0
-
 
 def get_dport(packet):
     """
