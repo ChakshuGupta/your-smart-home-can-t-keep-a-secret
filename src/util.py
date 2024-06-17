@@ -49,16 +49,25 @@ def convert_to_tensor(features, labels):
 
 
 
-def make_dataset_iterable(data_x, data_y):
+def make_dataset_iterable(data_x, data_y, device):
     """
     Use the Tensor dataloader to convert data batches
     """
-    batch_size = 100
+    batch_size = 40
 
     tensor_dataset = TensorDataset(data_x, data_y)
 
-    dataloader = DataLoader(dataset=tensor_dataset, 
-                                batch_size=batch_size, 
-                                shuffle=False)
+    if device == "cuda":
+        dataloader = DataLoader(dataset=tensor_dataset, 
+                                    batch_size=batch_size, 
+                                    shuffle=False,
+                                    pin_memory=True,
+                                    num_workers=4,
+                                    pin_memory_device=device)
+    
+    else:
+        dataloader = DataLoader(dataset=tensor_dataset, 
+                                    batch_size=batch_size, 
+                                    shuffle=False)
 
     return dataloader
