@@ -6,7 +6,7 @@ class Config:
     embedding_dim = 30
     num_layer = 2
     dropout_rate = 0.5
-    learning_rate = 0.0001
+    learning_rate = 0.001
     num_epochs = 15
     input_dim = 40 # Fingerprint size (11) - subtract dport (1) + embedding dim (30)
     num_embeddings = 65535 # Max possible value for ports
@@ -22,7 +22,8 @@ class LstmModel(nn.Module):
         self.bidirectional = bidirectional
         self.device = device
 
-        self.embedding =  nn.Embedding(self.config.num_embeddings, self.config.embedding_dim, device=self.device)
+        self.embedding =  nn.Embedding(self.config.num_embeddings,
+                                       self.config.embedding_dim, device=self.device)
         
         self.lstm = nn.LSTM(self.config.input_dim, self.config.hidden_dim, 
                             self.config.num_layer, batch_first=True,
@@ -32,9 +33,11 @@ class LstmModel(nn.Module):
         
         # Fully connected layer
         if self.bidirectional:
-            self.fc = nn.Linear(self.config.hidden_dim * 2, self.output_dim, device=self.device)
+            self.fc = nn.Linear(self.config.hidden_dim * 2,
+                                self.output_dim, device=self.device)
         else:
-            self.fc = nn.Linear(self.config.hidden_dim, self.output_dim, device=self.device)
+            self.fc = nn.Linear(self.config.hidden_dim,
+                                self.output_dim, device=self.device)
         
         # Softmax layer
         self.softmax = nn.Softmax(dim=1)
@@ -45,15 +48,22 @@ class LstmModel(nn.Module):
         # # Replace the original dport column in the features with the embedded ones
         input = torch.cat([embedded_dport,features[:,:,1:]],dim=2)
         input = input.float() #  To fix the error that LSTM was expecting float32 but got float64
-        
 
          # Fully-connected
         if self.bidirectional:
-            h0 = torch.zeros(self.config.num_layer * 2, input.size(0), self.config.hidden_dim, dtype=torch.float32, device=self.device)
-            c0 = torch.zeros(self.config.num_layer * 2, input.size(0), self.config.hidden_dim, dtype=torch.float32, device=self.device)
+            h0 = torch.zeros(self.config.num_layer * 2, input.size(0),
+                             self.config.hidden_dim, dtype=torch.float32,
+                             device=self.device)
+            c0 = torch.zeros(self.config.num_layer * 2, input.size(0),
+                             self.config.hidden_dim, dtype=torch.float32,
+                             device=self.device)
         else:
-            h0 = torch.zeros(self.config.num_layer, input.size(0), self.config.hidden_dim, dtype=torch.float32, device=self.device)
-            c0 = torch.zeros(self.config.num_layer, input.size(0), self.config.hidden_dim, dtype=torch.float32, device=self.device)
+            h0 = torch.zeros(self.config.num_layer, input.size(0),
+                             self.config.hidden_dim, dtype=torch.float32,
+                             device=self.device)
+            c0 = torch.zeros(self.config.num_layer, input.size(0),
+                             self.config.hidden_dim, dtype=torch.float32,
+                             device=self.device)
         
         lstm_out, (hidden, state) = self.lstm(input, (h0, c0))
 
