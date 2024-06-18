@@ -40,7 +40,7 @@ def encode_labels(device_list):
 
 def convert_to_tensor(features, labels):
     # Convert features to tensor format
-    tensor_features = torch.from_numpy(features)
+    tensor_features = torch.from_numpy(features.astype(float))
 
     # Convert labels to tensor format
     tensor_labels = torch.from_numpy(labels)
@@ -53,7 +53,7 @@ def make_dataset_iterable(data_x, data_y, device):
     """
     Use the Tensor dataloader to convert data batches
     """
-    batch_size = 40
+    batch_size = 100
 
     tensor_dataset = TensorDataset(data_x, data_y)
 

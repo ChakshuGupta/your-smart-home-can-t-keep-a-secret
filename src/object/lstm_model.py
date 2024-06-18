@@ -34,10 +34,10 @@ class LstmModel(nn.Module):
         # Fully connected layer
         if self.bidirectional:
             self.fc = nn.Linear(self.config.hidden_dim * 2,
-                                self.output_dim, device=self.device)
+                                self.output_dim, device=self.device, bias= True)
         else:
             self.fc = nn.Linear(self.config.hidden_dim,
-                                self.output_dim, device=self.device)
+                                self.output_dim, device=self.device, bias= True)
         
         # Softmax layer
         self.softmax = nn.Softmax(dim=1)

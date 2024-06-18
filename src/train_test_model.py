@@ -52,7 +52,7 @@ def train_lstm_model(train_features, train_labels, label_mapping, model_path, bi
             loss.backward()
 
             optimizer.step()
-            epoch_loss += loss.item()
+            epoch_loss += float(loss)
         
         epoch_loss /= len(train_dataloader)
         print(f'Epoch {epoch+1}/{config.num_epochs}, Loss: {epoch_loss}')

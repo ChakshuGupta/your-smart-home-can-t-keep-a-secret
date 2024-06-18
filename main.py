@@ -123,15 +123,15 @@ if __name__ == "__main__":
         dataset_x, dataset_y = preprocess_traffic(device_mac_map, dataset_pcap_list, dataset_base_path)
 
         # Declare the stratified k fold object
-        skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=1234)
+        skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=1111)
         idx = 0
         # Loop through the different folds
         for train_index, test_index in skf.split(dataset_x, dataset_y):
             # split the dataset into train and test dataset using the indices
-            x_train = np.array(dataset_x)[train_index]
-            y_train = np.array(dataset_y)[train_index]
-            x_test = np.array(dataset_x)[test_index]
-            y_test = np.array(dataset_y)[test_index]
+            x_train = dataset_x[train_index]
+            y_train = dataset_y[train_index]
+            x_test = dataset_x[test_index]
+            y_test = dataset_y[test_index]
             
             # Get the encoded labels for the training dataset
             y_train = labelencoder.transform(y_train.ravel())
@@ -156,7 +156,7 @@ if __name__ == "__main__":
         # Preprocess the traffic and get the features from the packets
         x_train, y_train = preprocess_traffic(device_mac_map, train_pcap_list, train_base_path)
         # Encode the training labels using the labelencoder
-        y_train = labelencoder.transform(y_train.values.ravel())
+        y_train = labelencoder.transform(y_train.ravel())
 
         model_path = train_base_path + "-model.sav"
         # Train the LSTM model
@@ -169,9 +169,9 @@ if __name__ == "__main__":
         # Preprocess the test traffic and get the features from the packets
         x_test, y_test = preprocess_traffic(device_mac_map, test_pcap_list, test_base_path)
         # Encode the test labels using the labelencoder
-        y_test = labelencoder.transform(y_test.values.ravel())
+        y_test = labelencoder.transform(y_test.ravel())
 
         # Test the Generated model
-        test_lstm_model(model, x_test, y_test)
+        test_lstm_model(model, x_test, y_test, device=device)
 
     print(label_mapping)
