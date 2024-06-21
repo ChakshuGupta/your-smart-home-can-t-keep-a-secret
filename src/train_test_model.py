@@ -1,8 +1,6 @@
 import os
 import torch
 
-from sklearn.metrics import classification_report
-
 from src.object.lstm_model import LstmModel, Config
 from src.util import make_dataset_iterable, convert_to_tensor
 
@@ -66,7 +64,7 @@ def train_lstm_model(train_features, train_labels, label_mapping, model_path, bi
 
 
 
-def test_lstm_model(model, test_features, test_labels, device="cpu"):
+def test_lstm_model(model, test_features, test_labels, labelencoder, device="cpu"):
     """
     Test the LSTM model
     """
@@ -86,11 +84,8 @@ def test_lstm_model(model, test_features, test_labels, device="cpu"):
         
         y_test_all.extend(y_batch)
         y_pred_total.extend(y_pred.cpu())
-
-    # Print the classification report
-    print(classification_report(
-        y_true = y_test_all,
-        y_pred = y_pred_total,
-        digits = 4,
-        zero_division = 0,
-    ))
+    
+    y_true_labels = labelencoder.inverse_transform(y_test_all)
+    y_pred_labels = labelencoder.inverse_transform(y_pred_total)
+    
+    return y_true_labels, y_pred_labels

@@ -116,6 +116,9 @@ def preprocess_traffic(mac_addrs, pcap_list, pickle_path):
 
 
 def split_traffic_windows(df_features, df_labels, window_size, path):
+    """
+    Split the traffic
+    """
     # Add the labels as a column to the features dataframe
     df_features["label"] = df_labels
     # Declare empty lists for the trafic windows
