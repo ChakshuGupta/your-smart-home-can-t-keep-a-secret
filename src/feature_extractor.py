@@ -1,33 +1,65 @@
 import ipaddress
+
+from scapy.all import *
+from scapy.layers.tls.record import TLS
+
 from src.object.feature_vector import FeatureVector
   
 
-def get_protocol_list(protocols):
+def get_protocol_list(packet, use_tshark):
     """
     Generate the protocols string using the method described in the paper
     """
     # default values of the protocols
     ip, tcp, udp, tls, http, dns, other = 0,0,0,0,0,0,0
-    protocol_list = protocols.split(":")
-    for proto in protocol_list:
-        if proto == "eth":
-            continue
-        elif proto == "ethertype":
-            continue
-        elif proto == "ip":
+    if use_tshark:
+        protocols = packet[2]
+        protocol_list = protocols.split(":")
+        for proto in protocol_list:
+            if proto == "eth":
+                continue
+            elif proto == "ethertype":
+                continue
+            elif proto == "ip":
+                ip = 1
+            elif proto == "tcp":
+                tcp = 1
+            elif proto == "udp":
+                udp = 1
+            elif proto == "tls" or proto == "ssl":
+                tls = 1
+            elif proto == "http":
+                http = 1
+            elif proto == "dns":
+                dns = 1
+            else:
+                other = 1
+    else:
+        layers = packet.layers()
+        layers.remove(Ether)
+        if IP in layers:
             ip = 1
-        elif proto == "tcp":
+            layers.remove(IP)
+        if TCP in layers:
             tcp = 1
-        elif proto == "udp":
+            layers.remove(TCP)
+            if packet.sport == 80 or packet.dport == 80:
+                http = 1
+        if UDP in layers:
             udp = 1
-        elif proto == "tls" or proto == "ssl":
-            tls = 1
-        elif proto == "http":
-            http = 1
-        elif proto == "dns":
+            layers.remove(UDP)
+            if packet.sport == 80 or packet.dport == 80:
+                http = 1
+        if DNS in layers:
             dns = 1
-        else:
+            layers.remove(DNS)
+        if Raw in layers:
+            if "TLS" in TLS(packet[Raw].load):
+                tls = 1
+            layers.remove(Raw)
+        if len(layers)>1:
             other = 1
+
 
     proto_list = [ip, tcp, udp, tls, http, dns, other]
 
@@ -58,9 +90,9 @@ def get_direction(packet, use_tshark):
             return 0
     # If using pyshark:
     else:
-        if "IPV6" in str(packet.layers):
-            src = ipaddress.ip_address(packet.ipv6.src)
-            dst = ipaddress.ip_address(packet.ipv6.dst)
+        if "IPV6" in packet:
+            src = ipaddress.ip_address(packet["IPv6"].src)
+            dst = ipaddress.ip_address(packet["IPv6"].dst)
 
             if src.is_global:
                 return 0
@@ -69,9 +101,9 @@ def get_direction(packet, use_tshark):
             else:
                 return 0
 
-        elif "IP" in str(packet.layers):
-            src = ipaddress.ip_address(packet.ip.src)
-            dst = ipaddress.ip_address(packet.ip.dst)
+        elif "IP" in packet:
+            src = ipaddress.ip_address(packet["IP"].src)
+            dst = ipaddress.ip_address(packet["IP"].dst)
 
             if src.is_global:
                 return 0
@@ -85,11 +117,17 @@ def get_dport(packet):
     """
     Get the destination port from the transport layer
     """
-    transport_layer = packet.transport_layer
-    if transport_layer is None:
+    if "TCP" in packet or "UDP" in packet:
+        return int(packet.dport)
+    else:
         return None
     
-    return int(packet[packet.transport_layer].dstport)
+    # This is for pyshark
+    # transport_layer = packet.transport_layer
+    # if transport_layer is None:
+    #     return None
+    
+    # return int(packet[packet.transport_layer].dstport)
 
 
 def extract_features(packet, last_time, use_tshark):
@@ -102,14 +140,14 @@ def extract_features(packet, last_time, use_tshark):
     if use_tshark:
         feature_vector.frame_len = int(packet[0])
         feature_vector.time_interval = float(packet[1]) - last_time
-        feature_vector.protocol = get_protocol_list(packet[2])
+        feature_vector.protocol = get_protocol_list(packet, use_tshark)
         feature_vector.direction = get_direction(packet, use_tshark)
         feature_vector.dport = int(packet[7])
     
     else:
-        feature_vector.frame_len = int(packet.frame_info.len)
-        feature_vector.time_interval = float(packet.frame_info.time_epoch) - last_time
-        feature_vector.protocol = get_protocol_list(packet.frame_info.protocols)
+        feature_vector.frame_len = len(packet)
+        feature_vector.time_interval = float(packet.time) - last_time
+        feature_vector.protocol = get_protocol_list(packet, use_tshark)
         feature_vector.direction = get_direction(packet, use_tshark)
         feature_vector.dport = get_dport(packet)
 
