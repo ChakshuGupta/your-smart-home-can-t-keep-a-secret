@@ -2,7 +2,7 @@ import ipaddress
 from src.object.feature_vector import FeatureVector
   
 
-def get_protocol_string(protocols):
+def get_protocol_list(protocols):
     """
     Generate the protocols string using the method described in the paper
     """
@@ -29,31 +29,56 @@ def get_protocol_string(protocols):
         else:
             other = 1
 
-    proto_str = [ip, tcp, udp, tls, http, dns, other]
+    proto_list = [ip, tcp, udp, tls, http, dns, other]
 
-    return proto_str
+    return proto_list
 
 
-def get_direction(packet):
+def get_direction(packet, use_tshark):
     """
     Get the direction of the traffic: inbound (0) or outbound (1)
     """
-    # if "IPV6" in str(packet.layers):
-    if "," in packet[5]:
-        packet[5] = packet[5].split(",")[0]
-    
-    if "," in packet[6]:
-        packet[6] = packet[6].split(",")[0]
+    # If using tshark
+    if use_tshark:
+        # if "IPV6" in str(packet.layers):
+        if "," in packet[5]:
+            packet[5] = packet[5].split(",")[0]
+        
+        if "," in packet[6]:
+            packet[6] = packet[6].split(",")[0]
 
-    src = ipaddress.ip_address(packet[5])
-    dst = ipaddress.ip_address(packet[6])
+        src = ipaddress.ip_address(packet[5])
+        dst = ipaddress.ip_address(packet[6])
 
-    if src.is_global:
-        return 0
-    elif dst.is_global:
-        return 1
+        if src.is_global:
+            return 0
+        elif dst.is_global:
+            return 1
+        else:
+            return 0
+    # If using pyshark:
     else:
-        return 0
+        if "IPV6" in str(packet.layers):
+            src = ipaddress.ip_address(packet.ipv6.src)
+            dst = ipaddress.ip_address(packet.ipv6.dst)
+
+            if src.is_global:
+                return 0
+            elif dst.is_global:
+                return 1
+            else:
+                return 0
+
+        elif "IP" in str(packet.layers):
+            src = ipaddress.ip_address(packet.ip.src)
+            dst = ipaddress.ip_address(packet.ip.dst)
+
+            if src.is_global:
+                return 0
+            elif dst.is_global:
+                return 1
+            else:
+                return 0
 
 
 def get_dport(packet):
@@ -67,17 +92,25 @@ def get_dport(packet):
     return int(packet[packet.transport_layer].dstport)
 
 
-def extract_features(packet, last_time):
+def extract_features(packet, last_time, use_tshark):
     """
     Extract the features required from the packet and store it
     in the object of the fingerprint class.
     """
     feature_vector = FeatureVector()
 
-    feature_vector.frame_len = int(packet[0])
-    feature_vector.time_interval = float(packet[1]) - last_time
-    feature_vector.protocol = get_protocol_string(packet[2])
-    feature_vector.direction = get_direction(packet)
-    feature_vector.dport = int(packet[7])
+    if use_tshark:
+        feature_vector.frame_len = int(packet[0])
+        feature_vector.time_interval = float(packet[1]) - last_time
+        feature_vector.protocol = get_protocol_list(packet[2])
+        feature_vector.direction = get_direction(packet, use_tshark)
+        feature_vector.dport = int(packet[7])
+    
+    else:
+        feature_vector.frame_len = int(packet.frame_info.len)
+        feature_vector.time_interval = float(packet.frame_info.time_epoch) - last_time
+        feature_vector.protocol = get_protocol_list(packet.frame_info.protocols)
+        feature_vector.direction = get_direction(packet, use_tshark)
+        feature_vector.dport = get_dport(packet)
 
     return feature_vector
