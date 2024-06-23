@@ -1,5 +1,6 @@
 import os
 import torch
+import torch.nn.functional as nnf
 
 from src.object.lstm_model import LstmModel, Config
 from src.util import make_dataset_iterable, convert_to_tensor
@@ -73,7 +74,8 @@ def test_lstm_model(model, test_features, test_labels, labelencoder, device="cpu
     test_dataloader = make_dataset_iterable(x_test, y_test, device)
     
     y_test_all = []
-    y_pred_total = []
+    y_pred_all = []
+    
     # Iterate through test dataset
     for x_batch, y_batch in test_dataloader:
         # Forward pass only to get logits/output
@@ -83,9 +85,9 @@ def test_lstm_model(model, test_features, test_labels, labelencoder, device="cpu
         _, y_pred = torch.max(outputs.data, 1)
         
         y_test_all.extend(y_batch)
-        y_pred_total.extend(y_pred.cpu())
+        y_pred_all.extend(y_pred.cpu())
     
     y_true_labels = labelencoder.inverse_transform(y_test_all)
-    y_pred_labels = labelencoder.inverse_transform(y_pred_total)
+    y_pred_labels = labelencoder.inverse_transform(y_pred_all)
     
     return y_true_labels, y_pred_labels
