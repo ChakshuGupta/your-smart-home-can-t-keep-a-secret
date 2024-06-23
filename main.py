@@ -12,7 +12,7 @@ from sklearn.metrics import classification_report
 
 from src.traffic_process import preprocess_traffic
 from src.train_test_model import train_lstm_model, test_lstm_model
-from src.util import encode_labels
+from src.util import encode_labels, load_device_file
 
 
 def verify_config(config):
@@ -45,23 +45,6 @@ def verify_config(config):
             error = True
     
     return error
-
-
-def load_device_file(device_file):
-   """
-   Load the mapping between devices and mac addresses
-   """
-   file_data = open(device_file, "r")
-   device_mac_map = {}
-   
-   for line in file_data:
-       if line.strip() == "":
-           continue
-       device = line.split(",")[0]
-       mac = line.split(",")[1]
-       device_mac_map[mac.strip()] = device.strip()
-
-   return device_mac_map
 
 
 def get_pcap_list(dataset_dir):

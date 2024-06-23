@@ -104,7 +104,6 @@ def preprocess_traffic(mac_addrs, pcap_list, pickle_path):
                         last_time = float(packets[index-1].time)
                     # Extract fingerprint for the packet
                     feature_vector = extract_features(packet, last_time, use_tshark)
-                    print(feature_vector.__dict__)
                     # If the src or dst MAC address exists in the mapping
                     # add the corresponding device name in the label
                     src_mac = packet["Ether"].src
@@ -120,10 +119,6 @@ def preprocess_traffic(mac_addrs, pcap_list, pickle_path):
                         # append the fingerprint in the features list
                         features.append(feature_vector.__dict__)
                         labels.append(mac_addrs[dst_mac])
-
-            # # Close the capture file and clear the data
-            # packets.close()
-            # packets.clear()
 
     # convert the lists to dataframe
     df_features = pd.DataFrame.from_dict(features)

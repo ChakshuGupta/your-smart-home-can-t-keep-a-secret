@@ -54,7 +54,8 @@ def get_protocol_list(packet, use_tshark):
             dns = 1
             layers.remove(DNS)
         if Raw in layers:
-            if "TLS" in TLS(packet[Raw].load):
+            pkt_data = packet[Raw].load
+            if pkt_data is not None and "TLS" in TLS(pkt_data):
                 tls = 1
             layers.remove(Raw)
         if len(layers)>1:
@@ -88,29 +89,25 @@ def get_direction(packet, use_tshark):
             return 1
         else:
             return 0
-    # If using pyshark:
+    
+    # If using scapy:
     else:
+        ip_layer = ipaddress.ip_address("0.0.0.0")
         if "IPV6" in packet:
-            src = ipaddress.ip_address(packet["IPv6"].src)
-            dst = ipaddress.ip_address(packet["IPv6"].dst)
-
-            if src.is_global:
-                return 0
-            elif dst.is_global:
-                return 1
-            else:
-                return 0
+            ip_layer = ipaddress.ip_address(packet["IPv6"])
 
         elif "IP" in packet:
-            src = ipaddress.ip_address(packet["IP"].src)
-            dst = ipaddress.ip_address(packet["IP"].dst)
+            ip_layer = ipaddress.ip_address(packet["IP"])
 
-            if src.is_global:
-                return 0
-            elif dst.is_global:
-                return 1
-            else:
-                return 0
+        src = ipaddress.ip_address(ip_layer.src)   
+        dst = ipaddress.ip_address(ip_layer.dst)
+
+        if src.is_global:
+            return 0
+        elif dst.is_global:
+            return 1
+        else:
+            return 0
 
 
 def get_dport(packet):
