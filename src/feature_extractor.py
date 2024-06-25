@@ -93,7 +93,7 @@ def get_direction(packet, use_tshark):
     # If using scapy:
     else:
         ip_layer = ipaddress.ip_address("0.0.0.0")
-        if "IPV6" in packet:
+        if "IPv6" in packet:
             ip_layer = ipaddress.ip_address(packet["IPv6"])
 
         elif "IP" in packet:

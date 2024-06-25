@@ -31,8 +31,8 @@ def preprocess_traffic(mac_addrs, pcap_list, pickle_path):
         # return the loaded values
         return dataset_x, dataset_y
     
-    use_tshark = False
-
+    pcap_list = list(sorted(pcap_list))
+    use_tshark = True
     print("Pickle files do not exist. Reading the pcap files...")
     # If the files do not exist, it will continue here.
     for file in pcap_list:
