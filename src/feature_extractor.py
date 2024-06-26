@@ -53,11 +53,9 @@ def get_protocol_list(packet, use_tshark):
         if DNS in layers:
             dns = 1
             layers.remove(DNS)
-        if Raw in layers:
-            pkt_data = packet[Raw].load
-            if pkt_data is not None and "TLS" in TLS(pkt_data):
-                tls = 1
-            layers.remove(Raw)
+        if TLS in layers:
+            tls = 1
+            layers.remove(TLS)
         if len(layers)>1:
             other = 1
 
@@ -94,11 +92,9 @@ def get_direction(packet, use_tshark):
     else:
         if "IPv6" in packet:
             ip_layer = packet[IPv6]
-            print(ip_layer)
 
         elif "IP" in packet:
             ip_layer = packet[IP]
-            print(ip_layer)
         else:
             return 0
 
