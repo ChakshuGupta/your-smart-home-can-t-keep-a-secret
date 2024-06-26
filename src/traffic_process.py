@@ -2,7 +2,9 @@ import numpy as np
 import os
 import pandas as pd
 import pickle
+
 from scapy.all import *
+from scapy.layers.tls.record import TLS # Import this to ensure TLS layers are read by rdpcap
 from subprocess import Popen, PIPE
 
 from src.feature_extractor import extract_features
@@ -32,7 +34,7 @@ def preprocess_traffic(mac_addrs, pcap_list, pickle_path):
         return dataset_x, dataset_y
     
     pcap_list = list(sorted(pcap_list))
-    use_tshark = True
+    use_tshark = False
     print("Pickle files do not exist. Reading the pcap files...")
     # If the files do not exist, it will continue here.
     for file in pcap_list:

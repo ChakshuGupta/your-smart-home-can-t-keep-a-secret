@@ -56,6 +56,8 @@ def get_protocol_list(packet, use_tshark):
         if TLS in layers:
             tls = 1
             layers.remove(TLS)
+        if Raw in layers:
+            layers.remove(Raw) # This is for data not protocol
         if len(layers)>1:
             other = 1
 
