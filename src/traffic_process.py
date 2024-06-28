@@ -13,6 +13,9 @@ from subprocess import Popen, PIPE
 from src.feature_extractor import extract_features
 
 
+NUM_PROCS = 4
+
+
 def process_pcap_tshark(file_list, mac_addrs, dataset):
     """
     Read and process the pcap file using command line tshark.
@@ -122,19 +125,16 @@ def preprocess_traffic(mac_addrs, pcap_list, pickle_path):
     # If the files already exist, load them
     if os.path.exists(features_filepath) and os.path.exists(labels_filepath):
         print("Loading the pickle files: {} and {}".format(features_filepath, labels_filepath))
-        df_features = pickle.load(open(features_filepath, "rb"))
-        df_labels = pickle.load(open(labels_filepath, "rb"))
-
-        dataset_x, dataset_y = split_traffic_windows(df_features, df_labels, 20, pickle_path)
+        dataset_x = pickle.load(open(features_filepath, "rb"))
+        dataset_y = pickle.load(open(labels_filepath, "rb"))
        
         # return the loaded values
         return dataset_x, dataset_y
 
-    use_tshark = False
+    use_tshark = True
     print("Pickle files do not exist. Reading the pcap files...")
     start = time.perf_counter()
-    num_procs = 4
-    chunk_size = int(len(pcap_list)/num_procs)
+    chunk_size = int(len(pcap_list)/NUM_PROCS)
 
     pcap_list_split = []
 
@@ -173,48 +173,23 @@ def preprocess_traffic(mac_addrs, pcap_list, pickle_path):
     # Convert labels list to dataframe
     df_labels = pd.DataFrame(labels)
 
+    dataset_x, dataset_y = get_sliding_windows(df_features, df_labels, 20)
+
     print("Saving the extracted features into pickle files.")
     # Save the dataframes to pickle files    
-    pickle.dump(df_features, open(features_filepath, "wb"))
-    pickle.dump(df_labels, open(labels_filepath, "wb"))
-
-    dataset_x, dataset_y = split_traffic_windows(df_features, df_labels, 20, pickle_path)
+    pickle.dump(dataset_x, open(features_filepath, "wb"))
+    pickle.dump(dataset_y, open(labels_filepath, "wb"))
 
     print( "Length of the features list and labels list: ", len(dataset_x), len(dataset_y))
     return dataset_x, dataset_y
 
 
-def split_traffic_windows(df_features, df_labels, window_size, path):
-    """
-    Split the traffic
-    """
-    # Add the labels as a column to the features dataframe
-    df_features["label"] = df_labels
-    # Declare empty lists for the trafic windows
-    dataset = []
-    # Get the unique labels in the dataframe
-    unique_labels = df_features["label"].unique()
-    print(unique_labels)
-
+def split_traffic(data_chunk, window_size, dataset_x, dataset_y):
     # For each label, get the data for that label
-    for label in unique_labels:
-        data = df_features.loc[df_features["label"] == label]
-        print(data.shape)
-        
-        # Generate the paths for the feature and label files
-        feature_path = path + "-features-" + label + ".pickle"
-        label_path = path + "-labels-" + label + ".pickle"
-        
-        # If the path exists, load the files
-        if os.path.exists(feature_path) and os.path.exists(label_path):
-            print("Loading the pickle files: {} and {}".format(feature_path, label_path))
-            # Load the dataset files
-            dataset.extend(pickle.load(open(feature_path, "rb")))
-            np.random.shuffle(dataset)
-            # dataset_y.extend(pickle.load(open(label_path, "rb")))
-            continue
+    for label in data_chunk:
+        print(label)
+        data = data_chunk[label]
 
-        start = len(dataset)
         if data.shape[0] <= window_size:
             num_null_rows = data.shape[0] + window_size
             for i in range(data.shape[0]-1, num_null_rows):
@@ -223,17 +198,42 @@ def split_traffic_windows(df_features, df_labels, window_size, path):
         for idx in range(data.shape[0] - window_size):
             traffic_window = data.iloc[ idx:idx + window_size, :]
             del traffic_window["label"]
-            dataset.append((traffic_window.values.tolist(), label))
-            # dataset_y.append(label)
+            dataset_x.append(traffic_window.values.tolist())
+            dataset_y.append(label)
 
-        print(len(dataset))
-        end = len(dataset)
-        print("Label {} converted".format(label))
-        print("Saving the extracted features into pickle files.")
-        # Save the dataframes to pickle files 
-        pickle.dump(dataset[start:end], open(feature_path, "wb"))
-        # pickle.dump(dataset_y[start:end], open(label_path, "wb"))
 
-        np.random.shuffle(dataset)
-    dataset_x, dataset_y = zip(*dataset)
+def get_sliding_windows(df_features, df_labels, window_size):
+    """
+    Split the traffic
+    """
+    # Add the labels as a column to the features dataframe
+    df_features["label"] = df_labels
+    # Declare empty lists for the trafic windows
+    dataset_x = Manager().list()
+    dataset_y = Manager().list()
+    # Get the unique labels in the dataframe
+    unique_labels = df_features["label"].unique()
+    labelwise_data = {}
+    for label in unique_labels:
+        labelwise_data[label] = df_features.loc[df_features["label"] == label]
+    
+    chunk_size = int(len(unique_labels)/NUM_PROCS)
+
+    data_split = []
+    for idx in range(0, len(unique_labels), chunk_size):
+        split_labels = unique_labels[idx: idx+chunk_size]
+        temp = {}
+        for label in split_labels:
+            temp[label] = labelwise_data[label]
+        data_split.append(temp)
+    
+    processes = []
+    for idx, data in enumerate(data_split):
+        p = Process(target=split_traffic, args=(data, window_size, dataset_x, dataset_y))
+        processes.append(p)
+        p.start()
+    
+    for process in processes:
+        process.join()    
+   
     return np.array(dataset_x, dtype=object), np.array(dataset_y)
