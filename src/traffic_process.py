@@ -10,6 +10,108 @@ from subprocess import Popen, PIPE
 from src.feature_extractor import extract_features
 
 
+def process_pcap_tshark(file, mac_addrs):
+    """
+    Read and process the pcap file using command line tshark.
+    Extract the features from the file and return them.
+    """
+    features = []
+    labels = []
+
+    command = ["tshark", "-r", file,
+                "-Tfields",
+                "-e", "frame.len",
+                "-e", "frame.time_epoch",
+                "-e", "frame.protocols",
+                "-e", "eth.src",
+                "-e", "eth.dst",
+                "-e", "ip.src",
+                "-e", "ip.dst",
+                "-e", "ipv6.src",
+                "-e", "ipv6.dst",
+                "-e", "tcp.dstport",
+                "-e", "udp.dstport"
+                ]
+
+    # Call Tshark on packets
+    process = Popen(command, stdout=PIPE, stderr=PIPE)
+    # Get output. Give warning message if any
+    out, err = process.communicate()
+    if err:
+        print("Error reading file: '{}'".format(err.decode('utf-8')))
+    
+    index = 0
+    last_packet = None
+    for packet in filter(None, out.decode('utf-8').split('\n')):
+        packet = np.array(packet.split())
+        print(packet)
+        if index == 0:
+            last_time = 0
+        else:
+            last_time = float(last_packet[1])
+        
+        if len(packet) < 8:
+            continue
+        # Extract fingerprint for the packet
+        feature_vector = extract_features(packet, last_time, use_tshark=True)
+
+        # If the src or dst MAC address exists in the mapping
+        # add the corresponding device name in the label
+        src_mac = packet[3]
+        dst_mac = packet[4]
+
+        # Add to the list only if the src or dst mac address is there in the
+        # mapping
+        if src_mac in mac_addrs:
+            # append the fingerprint in the features list
+            features.append(feature_vector.__dict__)
+            labels.append(mac_addrs[src_mac])
+        elif dst_mac in mac_addrs:
+            # append the fingerprint in the features list
+            features.append(feature_vector.__dict__)
+            labels.append(mac_addrs[dst_mac])
+        last_packet = packet
+        index += 1
+    
+    return features, labels
+
+
+def process_pcap_scapy(file, mac_addrs):
+    """
+    Read and process the pcap file using scapy library.
+    Extract the features from the file and return them.
+    """
+    features = []
+    labels = []
+
+    packets = rdpcap(file)
+
+    for packet in packets:
+        for index, packet in enumerate(packets):
+            if index == 0:
+                last_time = 0
+            else:
+                last_time = float(packets[index-1].time)
+            # Extract fingerprint for the packet
+            feature_vector = extract_features(packet, last_time, use_tshark=False)
+            # If the src or dst MAC address exists in the mapping
+            # add the corresponding device name in the label
+            src_mac = packet["Ether"].src
+            dst_mac = packet["Ether"].dst
+
+            # Add to the list only if the src or dst mac address is there in the
+            # mapping
+            if src_mac in mac_addrs:
+                # append the fingerprint in the features list
+                features.append(feature_vector.__dict__)
+                labels.append(mac_addrs[src_mac])
+            elif dst_mac in mac_addrs:
+                # append the fingerprint in the features list
+                features.append(feature_vector.__dict__)
+                labels.append(mac_addrs[dst_mac])
+    return features, labels
+
+
 def preprocess_traffic(mac_addrs, pcap_list, pickle_path):
     """
     Preprocess the traffic and extract the features from the traffic
@@ -39,88 +141,15 @@ def preprocess_traffic(mac_addrs, pcap_list, pickle_path):
     # If the files do not exist, it will continue here.
     for file in pcap_list:
         print("Reading file: ", file)
-        if use_tshark:
-            command = ["tshark", "-r", file,
-                    "-Tfields",
-                    "-e", "frame.len",
-                    "-e", "frame.time_epoch",
-                    "-e", "frame.protocols",
-                    "-e", "eth.src",
-                    "-e", "eth.dst",
-                    "-e", "ip.src",
-                    "-e", "ip.dst",
-                    "-e", "ipv6.src",
-                    "-e", "ipv6.dst",
-                    "-e", "tcp.dstport",
-                    "-e", "udp.dstport"
-                    ]
-
-            # Call Tshark on packets
-            process = Popen(command, stdout=PIPE, stderr=PIPE)
-            # Get output. Give warning message if any
-            out, err = process.communicate()
-            if err:
-                print("Error reading file: '{}'".format(err.decode('utf-8')))
-            
-            index = 0
-            last_packet = None
-            for packet in filter(None, out.decode('utf-8').split('\n')):
-                packet = np.array(packet.split())
-                print(packet)
-                if index == 0:
-                    last_time = 0
-                else:
-                    last_time = float(last_packet[1])
-                
-                if len(packet) < 8:
-                    continue
-                # Extract fingerprint for the packet
-                feature_vector = extract_features(packet, last_time, use_tshark)
-
-                # If the src or dst MAC address exists in the mapping
-                # add the corresponding device name in the label
-                src_mac = packet[3]
-                dst_mac = packet[4]
-
-                # Add to the list only if the src or dst mac address is there in the
-                # mapping
-                if src_mac in mac_addrs:
-                    # append the fingerprint in the features list
-                    features.append(feature_vector.__dict__)
-                    labels.append(mac_addrs[src_mac])
-                elif dst_mac in mac_addrs:
-                    # append the fingerprint in the features list
-                    features.append(feature_vector.__dict__)
-                    labels.append(mac_addrs[dst_mac])
-                last_packet = packet
-                index += 1
+        if use_tshark:       
+            t_features, t_labels = process_pcap_tshark(file, mac_addrs)
+            features.extend(t_features)
+            labels.extend(t_labels)
 
         else:
-            packets = rdpcap(file)
-
-            for packet in packets:
-                for index, packet in enumerate(packets):
-                    if index == 0:
-                        last_time = 0
-                    else:
-                        last_time = float(packets[index-1].time)
-                    # Extract fingerprint for the packet
-                    feature_vector = extract_features(packet, last_time, use_tshark)
-                    # If the src or dst MAC address exists in the mapping
-                    # add the corresponding device name in the label
-                    src_mac = packet["Ether"].src
-                    dst_mac = packet["Ether"].dst
-
-                    # Add to the list only if the src or dst mac address is there in the
-                    # mapping
-                    if src_mac in mac_addrs:
-                        # append the fingerprint in the features list
-                        features.append(feature_vector.__dict__)
-                        labels.append(mac_addrs[src_mac])
-                    elif dst_mac in mac_addrs:
-                        # append the fingerprint in the features list
-                        features.append(feature_vector.__dict__)
-                        labels.append(mac_addrs[dst_mac])
+            t_features, t_labels = process_pcap_scapy(file, mac_addrs)
+            features.extend(t_features)
+            labels.extend(t_labels)
 
     # convert the lists to dataframe
     df_features = pd.DataFrame.from_dict(features)
