@@ -13,7 +13,7 @@ from subprocess import Popen, PIPE
 from src.feature_extractor import extract_features
 
 
-NUM_PROCS = 4
+NUM_PROCS = 5
 
 
 def process_pcap_tshark(file_list, mac_addrs, dataset):
@@ -158,9 +158,9 @@ def preprocess_traffic(mac_addrs, pcap_list, pickle_path):
     print(f'It took {end-start:.2f} second(s) to finish')
 
     # Sort the data using the epoch time
-    dataset = list(sorted(dataset, key=lambda tup: tup[0]))
+    sorted_dataset = list(sorted(dataset, key=lambda tup: tup[0]))
     # Split the tuple values into epoch times, features and labels
-    _, features, labels = zip(*dataset)
+    _, features, labels = zip(*sorted_dataset)
     # convert the lists to dataframe
     df_features = pd.DataFrame.from_dict(features)
 
@@ -173,7 +173,13 @@ def preprocess_traffic(mac_addrs, pcap_list, pickle_path):
     # Convert labels list to dataframe
     df_labels = pd.DataFrame(labels)
 
-    dataset_x, dataset_y = get_sliding_windows(df_features, df_labels, 20)
+    dataset = get_sliding_windows(df_features, df_labels, 20)
+    np.random.shuffle(dataset)
+    
+    print(dataset)
+    dataset_x, dataset_y = zip(*dataset)
+    dataset_x = np.array(dataset_x, dtype=object)
+    dataset_y = np.array(dataset_y, dtype=object)
 
     print("Saving the extracted features into pickle files.")
     # Save the dataframes to pickle files    
@@ -184,11 +190,12 @@ def preprocess_traffic(mac_addrs, pcap_list, pickle_path):
     return dataset_x, dataset_y
 
 
-def split_traffic(data_chunk, window_size, dataset_x, dataset_y):
+def split_traffic(data_chunk, window_size, dataset):
     # For each label, get the data for that label
     for label in data_chunk:
         print(label)
         data = data_chunk[label]
+        del data["label"]
 
         if data.shape[0] <= window_size:
             num_null_rows = data.shape[0] + window_size
@@ -197,9 +204,7 @@ def split_traffic(data_chunk, window_size, dataset_x, dataset_y):
 
         for idx in range(data.shape[0] - window_size):
             traffic_window = data.iloc[ idx:idx + window_size, :]
-            del traffic_window["label"]
-            dataset_x.append(traffic_window.values.tolist())
-            dataset_y.append(label)
+            dataset.append((traffic_window.values.tolist(), label))
 
 
 def get_sliding_windows(df_features, df_labels, window_size):
@@ -209,8 +214,7 @@ def get_sliding_windows(df_features, df_labels, window_size):
     # Add the labels as a column to the features dataframe
     df_features["label"] = df_labels
     # Declare empty lists for the trafic windows
-    dataset_x = Manager().list()
-    dataset_y = Manager().list()
+    dataset = Manager().list()
     # Get the unique labels in the dataframe
     unique_labels = df_features["label"].unique()
     labelwise_data = {}
@@ -229,11 +233,13 @@ def get_sliding_windows(df_features, df_labels, window_size):
     
     processes = []
     for idx, data in enumerate(data_split):
-        p = Process(target=split_traffic, args=(data, window_size, dataset_x, dataset_y))
-        processes.append(p)
-        p.start()
+        process = Process(target=split_traffic, args=(data, window_size, dataset))
+        processes.append(process)
+        process.start()
+        print(process)
     
     for process in processes:
+        print(process)
         process.join()    
    
-    return np.array(dataset_x, dtype=object), np.array(dataset_y)
+    return np.array(dataset, dtype=object)

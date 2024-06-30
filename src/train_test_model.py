@@ -35,9 +35,8 @@ def train_lstm_model(train_features, train_labels, label_mapping, model_path, bi
     optimizer = torch.optim.Adam(lstm_model.parameters(), lr=config.learning_rate)
 
     total_loss = 0
-    epoch = 0
     # Training loop
-    while epoch < config.num_epochs:
+    for epoch in range(config.num_epochs):
         # Set the model in training mode
         lstm_model.train()
         epoch_loss = 0
@@ -56,8 +55,6 @@ def train_lstm_model(train_features, train_labels, label_mapping, model_path, bi
         
         epoch_loss /= len(train_dataloader)
         print(f'Epoch {epoch+1}/{config.num_epochs}, Loss: {epoch_loss}')
-        # increment epoch
-        epoch += 1
     
     print("Train total loss: %5f" % (total_loss/config.num_epochs))
 
@@ -85,7 +82,7 @@ def test_lstm_model(model, test_features, test_labels, labelencoder, device="cpu
         outputs = model(x_batch.to(device))
 
         # Get predictions from the maximum value
-        y_pred = torch.argmax(outputs["logits"], 1)
+        _, y_pred = torch.max(outputs, dim=1)
         
         y_test_all.extend(y_batch)
         y_pred_all.extend(y_pred.cpu())

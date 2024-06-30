@@ -85,6 +85,7 @@ def make_dataset_iterable(data_x, data_y, device):
     else:
         dataloader = DataLoader(dataset=tensor_dataset, 
                                     batch_size=batch_size, 
-                                    shuffle=False)
+                                    shuffle=False,
+                                    num_workers=4)
 
     return dataloader
