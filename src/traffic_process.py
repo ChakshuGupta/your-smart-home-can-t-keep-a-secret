@@ -223,7 +223,7 @@ def get_sliding_windows(df_features, df_labels, window_size):
     
     data_split = [ {} for _ in range(NUM_PROCS) ]
     for idx in range(0, len(unique_labels)):
-        data_split[idx % NUM_PROCS][label] = labelwise_data[label]
+        data_split[idx % NUM_PROCS][unique_labels[idx]] = labelwise_data[unique_labels[idx]]
     
     print("Length of split data", len(data_split))
 
