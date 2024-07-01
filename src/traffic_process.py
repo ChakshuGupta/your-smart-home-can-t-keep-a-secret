@@ -16,7 +16,7 @@ from src.feature_extractor import extract_features
 NUM_PROCS = 5
 
 
-def process_pcap_tshark(file_list, mac_addrs, dataset):
+def process_pcap_tshark(file_list, dataset):
     """
     Read and process the pcap file using command line tshark.
     Extract the features from the file and return them.
@@ -67,18 +67,19 @@ def process_pcap_tshark(file_list, mac_addrs, dataset):
 
             # Add to the list only if the src or dst mac address is there in the
             # mapping
-            if src_mac in mac_addrs:
-                # append the fingerprint in the features list
-                dataset.append((float(packet[1]), feature_vector.__dict__, mac_addrs[src_mac]))
-            elif dst_mac in mac_addrs:
-                # append the fingerprint in the features list
-                dataset.append((float(packet[1]), feature_vector.__dict__, mac_addrs[dst_mac]))
+            # if src_mac in mac_addrs:
+            #     # append the fingerprint in the features list
+            #     dataset.append((float(packet[1]), feature_vector.__dict__, mac_addrs[src_mac]))
+            # elif dst_mac in mac_addrs:
+            #     # append the fingerprint in the features list
+            #     dataset.append((float(packet[1]), feature_vector.__dict__, mac_addrs[dst_mac]))
+            dataset.append((float(packet[1]), feature_vector.__dict__, file))
             
             last_packet = packet
             index += 1
     
 
-def process_pcap_scapy(file_list, mac_addrs, dataset):
+def process_pcap_scapy(file_list, dataset):
     """
     Read and process the pcap file using scapy library.
     Extract the features from the file and return them.
@@ -103,15 +104,16 @@ def process_pcap_scapy(file_list, mac_addrs, dataset):
 
                 # Add to the list only if the src or dst mac address is there in the
                 # mapping
-                if src_mac in mac_addrs:
-                    # append the fingerprint in the features list
-                    dataset.append((packet.time, feature_vector.__dict__, mac_addrs[src_mac]))
-                elif dst_mac in mac_addrs:
-                    # append the fingerprint in the features list
-                    dataset.append((packet.time, feature_vector.__dict__, mac_addrs[dst_mac]))
+                # if src_mac in mac_addrs:
+                #     # append the fingerprint in the features list
+                #     dataset.append((packet.time, feature_vector.__dict__, mac_addrs[src_mac]))
+                # elif dst_mac in mac_addrs:
+                #     # append the fingerprint in the features list
+                #     dataset.append((packet.time, feature_vector.__dict__, mac_addrs[dst_mac]))
+                dataset.append((packet.time, feature_vector.__dict__, file))
         
 
-def preprocess_traffic(mac_addrs, pcap_list, pickle_path):
+def preprocess_traffic(pcap_list, pickle_path):
     """
     Preprocess the traffic and extract the features from the traffic
     """
@@ -145,9 +147,9 @@ def preprocess_traffic(mac_addrs, pcap_list, pickle_path):
     processes = []
     for file_list in pcap_list_split:
         if use_tshark:
-            p = Process(target=process_pcap_tshark, args=(file_list, mac_addrs, dataset))
+            p = Process(target=process_pcap_tshark, args=(file_list, dataset))
         else:
-            p = Process(target=process_pcap_scapy, args=(file_list, mac_addrs, dataset))
+            p = Process(target=process_pcap_scapy, args=(file_list, dataset))
         processes.append(p)
         p.start()
 

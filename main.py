@@ -33,15 +33,15 @@ def verify_config(config):
         elif not os.path.isdir(config["dataset-path"]["test"]):
             error = True
     
-    if "device-file" not in config:
-        error = True
-    else:
-        if not os.path.exists(config["device-file"]):
-            error = True
-        elif not os.path.isfile(config["device-file"]):
-            error = True
-        elif not config["device-file"].endswith(".txt"):
-            error = True
+    # if "device-file" not in config:
+    #     error = True
+    # else:
+    #     if not os.path.exists(config["device-file"]):
+    #         error = True
+    #     elif not os.path.isfile(config["device-file"]):
+    #         error = True
+    #     elif not config["device-file"].endswith(".txt"):
+    #         error = True
     
     return error
 
@@ -107,9 +107,10 @@ if __name__ == "__main__":
     
     logger.info("Using the device: {}".format(device))
     # Load the file mapping mac addresses to devices
-    device_mac_map = load_device_file(config["device-file"])
+    # device_mac_map = load_device_file(config["device-file"])
     # Get the list of values from the map i.e the list of devices
-    device_list = list(device_mac_map.values())
+    # device_list = list(device_mac_map.values())
+    device_list = next(os.walk(config["dataset-path"]["train"]))[2]
     logger.info("Device-mac_address mapping file loaded in memory.")
     # Get the label encoder and label mapping by encoding the device list into integers
     labelencoder, label_mapping = encode_labels(device_list)
@@ -131,7 +132,7 @@ if __name__ == "__main__":
         dataset_pcap_list = get_pcap_list(config["dataset-path"]["train"])
         logger.info("Retreived the list of pcaps from the dataset's directory.")
         # Preprocess the pcap files to get the features and the labels
-        dataset_x, dataset_y = preprocess_traffic(device_mac_map, dataset_pcap_list, dataset_base_path)
+        dataset_x, dataset_y = preprocess_traffic(dataset_pcap_list, dataset_base_path)
         logger.info("Finished loading and preprocessing the data.")
 
         # Declare the lists
