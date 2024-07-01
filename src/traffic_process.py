@@ -134,20 +134,20 @@ def preprocess_traffic(mac_addrs, pcap_list, pickle_path):
     use_tshark = True
     print("Pickle files do not exist. Reading the pcap files...")
     start = time.perf_counter()
-    chunk_size = int(len(pcap_list)/NUM_PROCS)
 
-    pcap_list_split = []
+    pcap_list_split = [ [] for _ in range(NUM_PROCS) ]
 
-    for idx in range(0, len(pcap_list), chunk_size):
-        pcap_list_split.append(pcap_list[idx:idx+chunk_size])
-    print(pcap_list_split)
+    for idx in range(0, len(pcap_list)):
+        pcap_list_split[idx % NUM_PROCS].append(pcap_list[idx])
+    
+    print(len(pcap_list_split))
     # If the files do not exist, it will continue here.
     processes = []
-    for chunk in pcap_list_split:
+    for file_list in pcap_list_split:
         if use_tshark:
-            p = Process(target=process_pcap_tshark, args=(chunk, mac_addrs, dataset))
+            p = Process(target=process_pcap_tshark, args=(file_list, mac_addrs, dataset))
         else:
-            p = Process(target=process_pcap_scapy, args=(chunk, mac_addrs, dataset))
+            p = Process(target=process_pcap_scapy, args=(file_list, mac_addrs, dataset))
         processes.append(p)
         p.start()
 
@@ -221,16 +221,12 @@ def get_sliding_windows(df_features, df_labels, window_size):
     for label in unique_labels:
         labelwise_data[label] = df_features.loc[df_features["label"] == label]
     
-    chunk_size = int(len(unique_labels)/NUM_PROCS)
-
-    data_split = []
-    for idx in range(0, len(unique_labels), chunk_size):
-        split_labels = unique_labels[idx: idx+chunk_size]
-        temp = {}
-        for label in split_labels:
-            temp[label] = labelwise_data[label]
-        data_split.append(temp)
+    data_split = [ {} for _ in range(NUM_PROCS) ]
+    for idx in range(0, len(unique_labels)):
+        data_split[idx % NUM_PROCS][label] = labelwise_data[label]
     
+    print("Length of split data", len(data_split))
+
     processes = []
     for idx, data in enumerate(data_split):
         process = Process(target=split_traffic, args=(data, window_size, dataset))
