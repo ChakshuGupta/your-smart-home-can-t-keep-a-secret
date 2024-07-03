@@ -17,7 +17,7 @@ from src.feature_extractor import extract_features
 
 NUM_PROCS = 3
 
-def process_pcap_tshark(mac_addrs, file):
+def process_pcap_tshark(file):
     """
     Read and process the pcap file using command line tshark.
     Extract the features from the file and return them.
