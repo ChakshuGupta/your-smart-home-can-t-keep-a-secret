@@ -74,7 +74,7 @@ def process_pcap_tshark(file):
         # elif dst_mac in mac_addrs:
         #     # append the fingerprint in the features list
         #     dataset.append((float(packet[1]), feature_vector.__dict__, mac_addrs[dst_mac]))
-        dataset.append((float(packet[1]), feature_vector.__dict__, file))
+        dataset.append((float(packet[1]), feature_vector.__dict__, file.split("/")[-1]))
         
         last_packet = packet
         index += 1
@@ -113,7 +113,7 @@ def process_pcap_scapy(file):
             # elif dst_mac in mac_addrs:
             #     # append the fingerprint in the features list
             #     dataset.append((float(packet[1]), feature_vector.__dict__, mac_addrs[dst_mac]))
-            dataset.append((packet.time, feature_vector.__dict__, file))
+            dataset.append((packet.time, feature_vector.__dict__, file.split("/")[-1]))
             
             last_packet = packet
             index += 1
