@@ -147,13 +147,6 @@ def preprocess_traffic(mac_addrs, pcap_list, pickle_path):
         print("Pickle files do not exist. Reading the pcap files...")
         start = time.perf_counter()
 
-        # pcap_list_split = [ [] for _ in range(NUM_PROCS) ]
-
-        # for idx in range(0, len(pcap_list)):
-        #     pcap_list_split[idx % NUM_PROCS].append(pcap_list[idx])
-        
-        # print(len(pcap_list_split))
-
         dataset = []
 
         # If the files do not exist, it will continue here.
@@ -230,9 +223,8 @@ def split_traffic(window_size, data_chunk):
     for idx in range(data.shape[0] - window_size):
         traffic_window = data.iloc[ idx:idx + window_size, :]
         dataset.append((traffic_window.values.tolist(), label))
-
-    print(dataset)
-
+    
+    print(f"Finished with label: {label}")
     return dataset
 
 
@@ -267,6 +259,7 @@ def get_sliding_windows(df_features, df_labels, window_size):
     pool.close()
     pool.join()
 
+    print("Completed generation of sliding windows.")
     print(dataset)
 
     # processes = []
