@@ -136,12 +136,16 @@ def preprocess_traffic(mac_addrs, pcap_list, pickle_path):
         # return the loaded values
         return dataset_x, dataset_y
 
+    # If the partial files exist, load them and continue to converting the
+    #  dataset into sliding window format
     if os.path.exists(features_part_filepath) and os.path.exists(labels_part_filepath):
         print("Loading the pickle files: {} and {}".format(features_part_filepath, labels_part_filepath))
         df_features = pickle.load(open(features_part_filepath, "rb"))
         df_labels = pickle.load(open(labels_part_filepath, "rb"))
     
     else:
+        # If there are no pickle files for the given dataset, 
+        # read the pcaps and extract fingerprints.
 
         use_tshark = True
         print("Pickle files do not exist. Reading the pcap files...")
@@ -149,20 +153,24 @@ def preprocess_traffic(mac_addrs, pcap_list, pickle_path):
 
         dataset = []
 
-        # If the files do not exist, it will continue here.
         pool = Pool(processes=NUM_PROCS)
 
+        # Get the partial function with the fixed argument, 
+        # i.e. the mac address mappings
         if use_tshark:
             func = partial(process_pcap_tshark, mac_addrs)
         else:
             func = partial(process_pcap_scapy, mac_addrs)
 
+        # Start a pool map with the function and pcap list
+        # and add the extracted fingerprints to the dataset list
         for result in pool.map(func, pcap_list):
             dataset.extend(result)
         
         end = time.perf_counter()
         print(f'It took {end-start:.2f} second(s) to finish')
-
+        
+        # Close the pool and wait for all parallel processes to finish
         pool.close()
         pool.join()
         
@@ -188,11 +196,14 @@ def preprocess_traffic(mac_addrs, pcap_list, pickle_path):
         pickle.dump(df_labels, open(labels_part_filepath, "wb"))
 
 
+    # Convert the dataset into the sliding window format
     dataset = get_sliding_windows(df_features, df_labels, 20)
+    # Shuffle the dataset
     np.random.shuffle(dataset)
     
-    print(dataset)
+    # Split the returned dataset into x and y values
     dataset_x, dataset_y = zip(*dataset)
+
     dataset_x = np.array(dataset_x, dtype=object)
     dataset_y = np.array(dataset_y, dtype=object)
 
@@ -206,8 +217,15 @@ def preprocess_traffic(mac_addrs, pcap_list, pickle_path):
 
 
 def split_traffic(window_size, data_chunk):
-    dataset = []
+    """
+    Split the traffic for the data chunk 
+    according to the window size
 
+    window_size: size of the window for sliding window
+    data_chunk: {label: all fingerprints corresponding to that label}
+    """
+    dataset = []
+    # Get the label from the data chunk
     label = list(data_chunk.keys())[0]   
     
     data = data_chunk[label]
@@ -230,29 +248,24 @@ def split_traffic(window_size, data_chunk):
 
 def get_sliding_windows(df_features, df_labels, window_size):
     """
-    Split the traffic
+    Get data in sliding window format
     """
-    # manager = Manager()
     # Add the labels as a column to the features dataframe
     df_features["label"] = df_labels
-    # Declare empty lists for the trafic windows
-    # dataset = manager.list()
+
     # Get the unique labels in the dataframe
     unique_labels = df_features["label"].unique()
+    # Convert the data into labelwise data, that is a list of dictionaries
     labelwise_data = []
     for label in unique_labels:
         labelwise_data.append({label: df_features.loc[df_features["label"] == label]})
     
-    # data_split = [ {} for _ in range(NUM_PROCS) ]
-    # for idx in range(0, len(unique_labels)):
-    #     data_split[idx % NUM_PROCS][unique_labels[idx]] = labelwise_data[unique_labels[idx]]
-    
-    # print("Length of split data", len(data_split))
     dataset = []
     pool = Pool(processes=NUM_PROCS)
 
+    # Get the partial function with a fixed argument: window size
     func = partial(split_traffic, window_size)
-
+    
     for result in pool.map(func, labelwise_data):
         dataset.extend(result)
 
@@ -260,17 +273,5 @@ def get_sliding_windows(df_features, df_labels, window_size):
     pool.join()
 
     print("Completed generation of sliding windows.")
-    print(dataset)
 
-    # processes = []
-    # for idx, data in enumerate(data_split):
-    #     process = Process(target=split_traffic, args=(data, window_size))
-    #     processes.append(process)
-    #     process.start()
-    #     print(process)
-    
-    # for process in processes:
-    #     print(process)
-    #     process.join()    
-   
     return np.array(dataset, dtype=object)
