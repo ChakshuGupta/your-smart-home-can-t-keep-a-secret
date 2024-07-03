@@ -15,7 +15,7 @@ from subprocess import Popen, PIPE
 from src.feature_extractor import extract_features
 
 
-NUM_PROCS = 5
+NUM_PROCS = 3
 
 
 def process_pcap_tshark(mac_addrs, file):
@@ -120,7 +120,10 @@ def preprocess_traffic(mac_addrs, pcap_list, pickle_path):
     """
     Preprocess the traffic and extract the features from the traffic
     """
-    # Get the filepaths for the features and labels pickle files
+    # Get the filepaths for the partial features and labels pickle files (without sliding windows)
+    features_part_filepath = pickle_path + "-" + "features-part.pickle"
+    labels_part_filepath = pickle_path + "-" + "labels-part.pickle"
+     # Get the filepaths for the features and labels pickle files
     features_filepath = pickle_path + "-" + "features.pickle"
     labels_filepath = pickle_path + "-" + "labels.pickle"
 
@@ -133,53 +136,64 @@ def preprocess_traffic(mac_addrs, pcap_list, pickle_path):
         # return the loaded values
         return dataset_x, dataset_y
 
-    use_tshark = True
-    print("Pickle files do not exist. Reading the pcap files...")
-    start = time.perf_counter()
-
-    # pcap_list_split = [ [] for _ in range(NUM_PROCS) ]
-
-    # for idx in range(0, len(pcap_list)):
-    #     pcap_list_split[idx % NUM_PROCS].append(pcap_list[idx])
+    if os.path.exists(features_part_filepath) and os.path.exists(labels_part_filepath):
+        print("Loading the pickle files: {} and {}".format(features_part_filepath, labels_part_filepath))
+        df_features = pickle.load(open(features_part_filepath, "rb"))
+        df_labels = pickle.load(open(labels_part_filepath, "rb"))
     
-    # print(len(pcap_list_split))
-
-    dataset = []
-
-    # If the files do not exist, it will continue here.
-    pool = Pool(processes=NUM_PROCS)
-
-    if use_tshark:
-        func = partial(process_pcap_tshark, mac_addrs)
     else:
-        func = partial(process_pcap_scapy, mac_addrs)
 
-    for result in pool.map(func, pcap_list):
-        dataset.extend(result)
-    
-    end = time.perf_counter()
-    print(f'It took {end-start:.2f} second(s) to finish')
+        use_tshark = True
+        print("Pickle files do not exist. Reading the pcap files...")
+        start = time.perf_counter()
 
-    pool.close()
-    pool.join()
-    
-    print(f"Number of fingerprints: {len(dataset)}")
+        # pcap_list_split = [ [] for _ in range(NUM_PROCS) ]
 
-    # Sort the data using the epoch time
-    sorted_dataset = list(sorted(dataset, key=lambda tup: tup[0]))
-    # Split the tuple values into epoch times, features and labels
-    _, features, labels = zip(*sorted_dataset)
-    # convert the lists to dataframe
-    df_features = pd.DataFrame.from_dict(features)
+        # for idx in range(0, len(pcap_list)):
+        #     pcap_list_split[idx % NUM_PROCS].append(pcap_list[idx])
+        
+        # print(len(pcap_list_split))
 
-    # Split the protocols list into separate columns
-    df_features[["protocol1", "protocol2", "protocol3", "protocol4", "protocol5", "protocol6", "protocol7"]] =\
-        pd.DataFrame(df_features.protocol.to_list(), index=df_features.index)
-    # Delete the original protocol column from the dataframe
-    del df_features["protocol"]
+        dataset = []
 
-    # Convert labels list to dataframe
-    df_labels = pd.DataFrame(labels)
+        # If the files do not exist, it will continue here.
+        pool = Pool(processes=NUM_PROCS)
+
+        if use_tshark:
+            func = partial(process_pcap_tshark, mac_addrs)
+        else:
+            func = partial(process_pcap_scapy, mac_addrs)
+
+        for result in pool.map(func, pcap_list):
+            dataset.extend(result)
+        
+        end = time.perf_counter()
+        print(f'It took {end-start:.2f} second(s) to finish')
+
+        pool.close()
+        pool.join()
+        
+        print(f"Number of fingerprints: {len(dataset)}")
+
+        # Sort the data using the epoch time
+        sorted_dataset = list(sorted(dataset, key=lambda tup: tup[0]))
+        # Split the tuple values into epoch times, features and labels
+        _, features, labels = zip(*sorted_dataset)
+        # convert the lists to dataframe
+        df_features = pd.DataFrame.from_dict(features)
+
+        # Split the protocols list into separate columns
+        df_features[["protocol1", "protocol2", "protocol3", "protocol4", "protocol5", "protocol6", "protocol7"]] =\
+            pd.DataFrame(df_features.protocol.to_list(), index=df_features.index)
+        # Delete the original protocol column from the dataframe
+        del df_features["protocol"]
+
+        # Convert labels list to dataframe
+        df_labels = pd.DataFrame(labels)
+
+        pickle.dump(df_features, open(features_part_filepath, "wb"))
+        pickle.dump(df_labels, open(labels_part_filepath, "wb"))
+
 
     dataset = get_sliding_windows(df_features, df_labels, 20)
     np.random.shuffle(dataset)
@@ -200,22 +214,25 @@ def preprocess_traffic(mac_addrs, pcap_list, pickle_path):
 
 def split_traffic(window_size, data_chunk):
     dataset = []
-    print(type(data_chunk))
-    # For each label, get the data for that label
-    for label in data_chunk:
-        print(label)
-        data = data_chunk[label]
-        del data["label"]
 
-        if data.shape[0] <= window_size:
-            num_null_rows = data.shape[0] + window_size
-            for i in range(data.shape[0]-1, num_null_rows):
-                pd.concat([data, pd.Series()], ignore_index=False)
-
-        for idx in range(data.shape[0] - window_size):
-            traffic_window = data.iloc[ idx:idx + window_size, :]
-            dataset.append((traffic_window.values.tolist(), label))
+    label = list(data_chunk.keys())[0]   
     
+    data = data_chunk[label]
+    del data["label"]
+
+    if data.shape[0] <= window_size:
+        num_null_rows = data.shape[0] + window_size
+        for i in range(data.shape[0]-1, num_null_rows):
+            pd.concat([data, pd.Series()], ignore_index=False)
+    
+    print(label, data.shape[0] - window_size)
+    
+    for idx in range(data.shape[0] - window_size):
+        traffic_window = data.iloc[ idx:idx + window_size, :]
+        dataset.append((traffic_window.values.tolist(), label))
+
+    print(dataset)
+
     return dataset
 
 
@@ -249,6 +266,8 @@ def get_sliding_windows(df_features, df_labels, window_size):
 
     pool.close()
     pool.join()
+
+    print(dataset)
 
     # processes = []
     # for idx, data in enumerate(data_split):
