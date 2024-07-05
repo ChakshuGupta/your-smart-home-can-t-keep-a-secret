@@ -38,10 +38,7 @@ class LstmModel(nn.Module):
         else:
             self.fc = nn.Linear(self.config.hidden_dim,
                                 self.output_dim, device=self.device, bias= True)
-        
-        # Softmax layer
-        self.softmax = nn.Softmax(dim=1)
-    
+            
 
     def forward(self, features):                
         embedded_dport = self.embedding(features[:,:,1].to(torch.long))
@@ -65,10 +62,8 @@ class LstmModel(nn.Module):
                              self.config.hidden_dim, dtype=torch.float32,
                              device=self.device)
         
-        lstm_out, (hidden, state) = self.lstm(input, (h0, c0))
+        lstm_out, _ = self.lstm(input, (h0, c0))
 
         lstm_out = self.fc(lstm_out[:, -1, :])
 
-         # Softmax 
-        output = self.softmax(lstm_out)
-        return output
+        return lstm_out
