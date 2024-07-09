@@ -1,17 +1,6 @@
 import torch
 import torch.nn as nn
 
-class Config:
-    hidden_dim = 64
-    embedding_dim = 30
-    num_layer = 2
-    dropout_rate = 0.5
-    learning_rate = 0.001
-    num_epochs = 15
-    input_dim = 40 # Fingerprint size (11) - subtract dport (1) + embedding dim (30)
-    num_embeddings = 65535 # Max possible value for ports
-
-
 class LstmModel(nn.Module):
 
     def __init__(self, config, output_dim, bidirectional=False, device="cpu"):

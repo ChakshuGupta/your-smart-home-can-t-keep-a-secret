@@ -2,7 +2,8 @@ import os
 import torch
 import torch.nn.functional as nnf
 
-from src.object.lstm_model import LstmModel, Config
+from src.constants import Config
+from src.object.lstm_model import LstmModel
 from src.util import make_dataset_iterable, convert_to_tensor
 
 

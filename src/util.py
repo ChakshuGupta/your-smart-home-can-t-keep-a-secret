@@ -4,6 +4,7 @@ import torch
 from sklearn.preprocessing import LabelEncoder
 from torch.utils.data import DataLoader, TensorDataset
 
+from src.constants import NUM_PROCS
 
 
 def load_device_file(device_file):
@@ -79,13 +80,13 @@ def make_dataset_iterable(data_x, data_y, device):
                                     batch_size=batch_size, 
                                     shuffle=False,
                                     pin_memory=True,
-                                    num_workers=4,
+                                    num_workers=NUM_PROCS,
                                     pin_memory_device=device)
     
     else:
         dataloader = DataLoader(dataset=tensor_dataset, 
                                     batch_size=batch_size, 
                                     shuffle=False,
-                                    num_workers=4)
+                                    num_workers=NUM_PROCS)
 
     return dataloader

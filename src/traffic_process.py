@@ -12,10 +12,8 @@ from scapy.all import *
 from scapy.layers.tls.record import TLS # Import this to ensure TLS layers are read by rdpcap
 from subprocess import Popen, PIPE
 
+from src.constants import NUM_PROCS, WIN_SIZE
 from src.feature_extractor import extract_features
-
-
-NUM_PROCS = 3
 
 
 def process_pcap_tshark(mac_addrs, file):
@@ -197,7 +195,7 @@ def preprocess_traffic(mac_addrs, pcap_list, pickle_path):
 
 
     # Convert the dataset into the sliding window format
-    dataset = get_sliding_windows(df_features, df_labels, 20)
+    dataset = get_sliding_windows(df_features, df_labels, WIN_SIZE)
     # Shuffle the dataset
     np.random.shuffle(dataset)
     
