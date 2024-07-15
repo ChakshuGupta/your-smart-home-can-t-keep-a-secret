@@ -122,8 +122,8 @@ def preprocess_traffic(mac_addrs, pcap_list, pickle_path):
     features_part_filepath = pickle_path + "-" + "features-part.pickle"
     labels_part_filepath = pickle_path + "-" + "labels-part.pickle"
      # Get the filepaths for the features and labels pickle files
-    features_filepath = pickle_path + "-" + "features.pickle"
-    labels_filepath = pickle_path + "-" + "labels.pickle"
+    features_filepath = pickle_path + "-" + str(WIN_SIZE) + "-" + "features.pickle"
+    labels_filepath = pickle_path + "-" + str(WIN_SIZE) + "-" + "labels.pickle"
 
     # If the files already exist, load them
     if os.path.exists(features_filepath) and os.path.exists(labels_filepath):
