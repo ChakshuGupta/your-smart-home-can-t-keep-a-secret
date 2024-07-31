@@ -35,6 +35,8 @@ def train_lstm_model(train_features, train_labels, label_mapping, model_path, bi
     criterion = torch.nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(lstm_model.parameters(), lr=config.learning_rate)
 
+    scaler = torch.cuda.amp.GradScaler()
+
     total_loss = 0
     # Training loop
     for epoch in range(config.num_epochs):
@@ -42,18 +44,26 @@ def train_lstm_model(train_features, train_labels, label_mapping, model_path, bi
         lstm_model.train()
         epoch_loss = 0
         for x_batch, y_batch in train_dataloader:
+            x_batch = x_batch.to(device)
+            y_batch = y_batch.to(device)
             optimizer.zero_grad(set_to_none=True)
-            # Forward propogation
-            y_pred = lstm_model(x_batch.to(device))
-            # Compute loss between predicted values and true values
-            loss = criterion(y_pred, y_batch.to(device))
-            total_loss += loss
+            
+            with torch.cuda.amp.autocast(dtype=torch.float16, enabled=False):
+                # Forward propogation
+                y_pred = lstm_model(x_batch)
+                # Compute loss between predicted values and true values
+                loss = criterion(y_pred, y_batch)
+            
+            total_loss += loss.item()   
+            
             # Backpropagate loss
-            loss.backward()
+            scaler.scale(loss).backward()
 
-            optimizer.step()
-            epoch_loss += float(loss)
-        
+            epoch_loss += loss.item()
+            
+            scaler.step(optimizer)
+            scaler.update()
+
         epoch_loss /= len(train_dataloader)
         print(f'Epoch {epoch+1}/{config.num_epochs}, Loss: {epoch_loss}')
     
@@ -79,8 +89,10 @@ def test_lstm_model(model, test_features, test_labels, labelencoder, device="cpu
     
     # Iterate through test dataset
     for x_batch, y_batch in test_dataloader:
+        x_batch = x_batch.to(device)
+        y_batch = y_batch.to(device)
         # Forward pass only to get logits/output
-        outputs = model(x_batch.to(device))
+        outputs = model(x_batch)
 
         # Get predictions from the maximum value
         _, y_pred = torch.max(outputs, dim=1)
