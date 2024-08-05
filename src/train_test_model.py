@@ -90,14 +90,13 @@ def test_lstm_model(model, test_features, test_labels, labelencoder, device="cpu
     # Iterate through test dataset
     for x_batch, y_batch in test_dataloader:
         x_batch = x_batch.to(device)
-        y_batch = y_batch.to(device)
         # Forward pass only to get logits/output
         outputs = model(x_batch)
 
         # Get predictions from the maximum value
         _, y_pred = torch.max(outputs, dim=1)
         
-        y_test_all.extend(y_batch.cpu())
+        y_test_all.extend(y_batch)
         y_pred_all.extend(y_pred.cpu())
     
     y_true_labels = labelencoder.inverse_transform(y_test_all)
