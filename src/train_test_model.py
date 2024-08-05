@@ -97,7 +97,7 @@ def test_lstm_model(model, test_features, test_labels, labelencoder, device="cpu
         # Get predictions from the maximum value
         _, y_pred = torch.max(outputs, dim=1)
         
-        y_test_all.extend(y_batch)
+        y_test_all.extend(y_batch.cpu())
         y_pred_all.extend(y_pred.cpu())
     
     y_true_labels = labelencoder.inverse_transform(y_test_all)
