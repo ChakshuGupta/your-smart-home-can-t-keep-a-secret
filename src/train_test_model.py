@@ -27,7 +27,7 @@ def train_lstm_model(train_features, train_labels, label_mapping, model_path, bi
     # If the model file exists, load it and return the file
     if os.path.exists(model_path):
         lstm_model = LstmModel(config, output_dim, bidirectional, device)
-        lstm_model.load_state_dict(torch.load(model_path))
+        lstm_model.load_state_dict(torch.load(model_path, map_location=torch.device(device)))
         return lstm_model
 
     # Get the LSTM mddel class object
