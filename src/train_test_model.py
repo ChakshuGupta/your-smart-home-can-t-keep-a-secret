@@ -35,7 +35,7 @@ def train_lstm_model(train_features, train_labels, label_mapping, model_path, bi
     criterion = torch.nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(lstm_model.parameters(), lr=config.learning_rate)
 
-    scaler = torch.cuda.amp.GradScaler()
+    scaler = torch.GradScaler(device=device)
 
     total_loss = 0
     # Training loop
@@ -48,7 +48,7 @@ def train_lstm_model(train_features, train_labels, label_mapping, model_path, bi
             y_batch = y_batch.to(device)
             optimizer.zero_grad(set_to_none=True)
             
-            with torch.cuda.amp.autocast(dtype=torch.float16, enabled=False):
+            with torch.autocast(device_type=device, enabled=False, cache_enabled=False):
                 # Forward propogation
                 y_pred = lstm_model(x_batch)
                 # Compute loss between predicted values and true values
@@ -91,7 +91,8 @@ def test_lstm_model(model, test_features, test_labels, labelencoder, device="cpu
     for x_batch, y_batch in test_dataloader:
         x_batch = x_batch.to(device)
         # Forward pass only to get logits/output
-        outputs = model(x_batch)
+        with torch.no_grad():
+            outputs = model(x_batch)
 
         # Get predictions from the maximum value
         _, y_pred = torch.max(outputs, dim=1)
