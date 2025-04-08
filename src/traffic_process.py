@@ -128,8 +128,8 @@ def preprocess_traffic(mac_addrs, pcap_list, pickle_path):
     # If the files already exist, load them
     if os.path.exists(features_filepath) and os.path.exists(labels_filepath):
         print("Loading the pickle files: {} and {}".format(features_filepath, labels_filepath))
-        dataset_x = pickle.load(open(features_filepath, "rb"))
-        dataset_y = pickle.load(open(labels_filepath, "rb"))
+        dataset_x = pd.read_pickle(features_filepath)
+        dataset_y = pd.read_pickle(labels_filepath)
     
         # return the loaded values
         return dataset_x, dataset_y
@@ -138,8 +138,8 @@ def preprocess_traffic(mac_addrs, pcap_list, pickle_path):
     #  dataset into sliding window format
     if os.path.exists(features_part_filepath) and os.path.exists(labels_part_filepath):
         print("Loading the pickle files: {} and {}".format(features_part_filepath, labels_part_filepath))
-        df_features = pickle.load(open(features_part_filepath, "rb"))
-        df_labels = pickle.load(open(labels_part_filepath, "rb"))
+        df_features = pd.read_pickle(features_part_filepath)
+        df_labels = pd.read_pickle(labels_part_filepath)
     
     else:
         # If there are no pickle files for the given dataset, 

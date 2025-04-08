@@ -27,7 +27,7 @@ def train_lstm_model(train_features, train_labels, label_mapping, model_path, bi
     # If the model file exists, load it and return the file
     if os.path.exists(model_path):
         lstm_model = LstmModel(config, output_dim, bidirectional, device)
-        lstm_model.load_state_dict(torch.load(model_path, map_location=torch.device(device)))
+        lstm_model.load_state_dict(torch.load(model_path, weights_only=False, map_location=torch.device(device)))
         return lstm_model
 
     # Get the LSTM mddel class object
@@ -86,6 +86,7 @@ def test_lstm_model(model, test_features, test_labels, labelencoder, device="cpu
     
     y_test_all = []
     y_pred_all = []
+    y_probs_all = []
     
     # Iterate through test dataset
     for x_batch, y_batch in test_dataloader:
@@ -96,11 +97,14 @@ def test_lstm_model(model, test_features, test_labels, labelencoder, device="cpu
 
         # Get predictions from the maximum value
         _, y_pred = torch.max(outputs, dim=1)
+        probabilities = nnf.softmax(outputs, dim=1)  # Apply softmax along dimension 1 (class dimension)
+        y_probs = torch.amax(probabilities, dim=1)
         
         y_test_all.extend(y_batch)
         y_pred_all.extend(y_pred.cpu())
+        y_probs_all.extend(y_probs.tolist())
     
     y_true_labels = labelencoder.inverse_transform(y_test_all)
     y_pred_labels = labelencoder.inverse_transform(y_pred_all)
     
-    return y_true_labels, y_pred_labels
+    return y_true_labels, y_pred_labels, y_probs_all
